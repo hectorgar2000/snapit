@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, FlatList, StyleSheet, ActivityIndicator, Alert,
+  View, Text, FlatList, StyleSheet, Alert,
 } from 'react-native';
 import { LeaderboardSkeleton } from '../components/Skeleton';
 import { useFocusEffect } from '@react-navigation/native';

@@ -503,8 +503,6 @@ def get_history(
             can_see_images = friendship is not None and friendship.status == "accepted"
 
     submissions = get_user_history(session, user.id)
-    from core.catalog import get_by_coco_name
-
     entries = []
     calendar = []
     for sub in submissions:

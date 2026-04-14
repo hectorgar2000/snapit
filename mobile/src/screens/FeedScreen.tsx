@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  Image, TextInput, ActivityIndicator, Alert, Share, ScrollView,
+  Image, TextInput, Alert, Share, ScrollView,
 } from 'react-native';
 import { FeedSkeleton } from '../components/Skeleton';
 import { useFocusEffect } from '@react-navigation/native';
