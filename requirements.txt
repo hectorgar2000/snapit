@@ -1,3 +1,7 @@
+# Forzar torch CPU-only (evita bajar CUDA ~2.5 GB, no hay GPU en el servidor)
+--index-url https://download.pytorch.org/whl/cpu
+--extra-index-url https://pypi.org/simple/
+
 ultralytics>=8.1.0   # YOLO-World requiere >= 8.1
 fastapi>=0.110.0
 uvicorn[standard]>=0.29.0
