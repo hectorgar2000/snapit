@@ -12,13 +12,15 @@ Docs interactivas: http://localhost:8000/docs
 import base64
 import sys
 import os
+from collections import defaultdict
 from datetime import date, datetime
 from pathlib import Path
+from time import time
 from typing import Optional
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from fastapi import FastAPI, File, Form, UploadFile, Depends, HTTPException, status
+from fastapi import FastAPI, File, Form, UploadFile, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -55,6 +57,23 @@ from core.challenge import get_daily_challenge, get_week_preview
 from core.detector import get_detector
 from core.scorer import calculate_score, DetectionInput
 from core.catalog import get_by_coco_name
+
+
+# ─── Rate limiting (in-memory, por IP) ───────────────────────────────────────
+
+_rate_buckets: dict[str, list[float]] = defaultdict(list)
+
+def _check_rate(ip: str, limit: int, window: int = 60) -> None:
+    """Lanza 429 si la IP supera `limit` peticiones en `window` segundos."""
+    now = time()
+    bucket = _rate_buckets[ip]
+    bucket[:] = [t for t in bucket if now - t < window]
+    if len(bucket) >= limit:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Demasiadas peticiones. Espera {window} segundos e inténtalo de nuevo."
+        )
+    bucket.append(now)
 
 
 # ─── App setup ────────────────────────────────────────────────────────────────
@@ -113,7 +132,8 @@ def root():
 # ── Auth endpoints ────────────────────────────────────────────────────────────
 
 @app.post("/register", response_model=TokenResponse, tags=["Auth"])
-def register(body: RegisterRequest, session: Session = Depends(get_session)):
+def register(request: Request, body: RegisterRequest, session: Session = Depends(get_session)):
+    _check_rate(request.client.host, limit=5, window=60)  # 5 registros/min por IP
     """
     Registro de nuevo usuario con email y contraseña.
     Devuelve un JWT token listo para usar.
@@ -273,6 +293,7 @@ def get_week():
 
 @app.post("/submit", response_model=ScoreResponse, tags=["Submission"])
 async def submit_photo(
+    request:                    Request,
     username:                   str  = Form(...),
     display_name:               str  = Form(""),
     seconds_since_notification: int  = Form(...),
@@ -288,6 +309,8 @@ async def submit_photo(
     - Guarda solo la mejor puntuación.
     - Devuelve el score con desglose completo e imagen anotada.
     """
+    _check_rate(request.client.host, limit=15, window=60)  # 15 fotos/min por IP
+
     # Validaciones básicas
     if attempt_number not in (1, 2, 3):
         raise HTTPException(status_code=400, detail="attempt_number debe ser 1, 2 o 3")

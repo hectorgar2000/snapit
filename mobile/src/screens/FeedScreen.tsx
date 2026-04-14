@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  Image, TextInput, ActivityIndicator, Alert, Share,
+  Image, TextInput, ActivityIndicator, Alert, Share, ScrollView,
 } from 'react-native';
+import { FeedSkeleton } from '../components/Skeleton';
 import { useFocusEffect } from '@react-navigation/native';
 import { C, S } from '../theme';
 import { apiFeed, apiLike, apiUnlike, apiComments, apiPostComment } from '../api';
@@ -181,9 +182,7 @@ export default function FeedScreen({ session }: Props) {
       </View>
 
       {loading ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator color={C.accent} size="large" />
-        </View>
+        <ScrollView><FeedSkeleton /></ScrollView>
       ) : (
         <FlatList
           data={entries}

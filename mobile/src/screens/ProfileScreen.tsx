@@ -7,6 +7,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { C, S } from '../theme';
 import { apiMe, apiUpdateProfile, apiChangePassword, apiDeleteAccount, apiHistory } from '../api';
 import { clearSession } from '../auth';
+import { ProfileSkeleton } from '../components/Skeleton';
 import { AuthSession } from '../types';
 
 interface Props {
@@ -128,9 +129,9 @@ export default function ProfileScreen({ session, onLogout }: Props) {
     d === 'easy' ? C.green : d === 'medium' ? '#f59e0b' : C.red;
 
   if (loading) return (
-    <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }}>
-      <ActivityIndicator color={C.accent} size="large" />
-    </View>
+    <ScrollView style={{ flex: 1, backgroundColor: C.bg }}>
+      <ProfileSkeleton />
+    </ScrollView>
   );
 
   const displayName = profile?.display_name || session.displayName;

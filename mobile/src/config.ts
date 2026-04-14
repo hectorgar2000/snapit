@@ -1,11 +1,13 @@
-// ── URL de la API ─────────────────────────────────────────────────────────────
-//
-// Desarrollo local:
-//   - Android emulator → 'http://10.0.2.2:8000'
-//   - iOS simulator    → 'http://localhost:8000'
-//   - Dispositivo físico → 'http://TU_IP_LOCAL:8000'  (ej. 192.168.1.X)
-//
-// Producción:
-//   - URL de Railway   → 'https://snapit.up.railway.app'
+import Constants from 'expo-constants';
 
-export const API_URL = 'https://snapit.up.railway.app';
+// La URL de la API se lee desde app.json → extra.apiUrl
+// Esto evita hardcodear la URL y permite cambiarla sin tocar código.
+//
+// Para cambiar el entorno, edita app.json:
+//   "extra": { "apiUrl": "https://tu-app.railway.app" }
+//
+// Para desarrollo local con dispositivo físico, pon tu IP:
+//   "extra": { "apiUrl": "http://192.168.X.X:8000" }
+
+export const API_URL: string =
+  Constants.expoConfig?.extra?.apiUrl ?? 'http://10.0.2.2:8000';

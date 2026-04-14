@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import {
   View, Text, FlatList, StyleSheet, ActivityIndicator, Alert,
 } from 'react-native';
+import { LeaderboardSkeleton } from '../components/Skeleton';
 import { useFocusEffect } from '@react-navigation/native';
 import { C, S } from '../theme';
 import { apiLeaderboard } from '../api';
@@ -34,9 +35,7 @@ export default function LeaderboardScreen({ session }: Props) {
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <Text style={[S.sectionTitle, { padding: 16, paddingBottom: 8 }]}>Ranking global</Text>
       {loading ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator color={C.accent} size="large" />
-        </View>
+        <LeaderboardSkeleton />
       ) : (
         <FlatList
           data={entries}

@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { AuthSession } from './src/types';
 import { loadSession } from './src/auth';
@@ -12,6 +13,7 @@ import { apiSavePushToken } from './src/api';
 import { C } from './src/theme';
 
 import AuthScreen        from './src/screens/AuthScreen';
+import OnboardingScreen  from './src/screens/OnboardingScreen';
 import PlayScreen        from './src/screens/PlayScreen';
 import FeedScreen        from './src/screens/FeedScreen';
 import FriendsScreen     from './src/screens/FriendsScreen';
@@ -19,6 +21,7 @@ import LeaderboardScreen from './src/screens/LeaderboardScreen';
 import ProfileScreen     from './src/screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
+const ONBOARDING_KEY = 'snapit_onboarding_done';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -47,7 +50,6 @@ const TAB_ICONS: Record<string, string> = {
   Jugar: '📷', Feed: '🌐', Amigos: '👥', Ranking: '🏆', Perfil: '👤',
 };
 
-// Hora "sorpresa" determinista por fecha (entre 8:00 y 19:59)
 function getDailyNotifTime(d: Date): Date {
   const dateStr = `snapit_v1:${d.toISOString().split('T')[0]}`;
   let hash = 0;
@@ -64,7 +66,6 @@ async function setupNotifications(authToken: string) {
   const { status } = await Notifications.requestPermissionsAsync();
   if (status !== 'granted') return;
 
-  // Canal Android
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('daily', {
       name: 'Reto diario',
@@ -72,7 +73,6 @@ async function setupNotifications(authToken: string) {
     });
   }
 
-  // Programar notificación para hoy y mañana
   await Notifications.cancelAllScheduledNotificationsAsync();
   const now = new Date();
   for (let offset = 0; offset <= 1; offset++) {
@@ -91,7 +91,6 @@ async function setupNotifications(authToken: string) {
     }
   }
 
-  // Guardar push token en servidor (falla silenciosamente en simulador)
   try {
     const { data } = await Notifications.getExpoPushTokenAsync();
     await apiSavePushToken(data, authToken);
@@ -99,11 +98,19 @@ async function setupNotifications(authToken: string) {
 }
 
 export default function App() {
-  const [session,  setSession]  = useState<AuthSession | null>(null);
-  const [checking, setChecking] = useState(true);
+  const [session,     setSession]     = useState<AuthSession | null>(null);
+  const [checking,    setChecking]    = useState(true);
+  const [onboarding,  setOnboarding]  = useState(false);
 
   useEffect(() => {
-    loadSession().then(s => { setSession(s); setChecking(false); });
+    Promise.all([
+      loadSession(),
+      AsyncStorage.getItem(ONBOARDING_KEY),
+    ]).then(([s, done]) => {
+      setSession(s);
+      setOnboarding(!done);
+      setChecking(false);
+    });
   }, []);
 
   useEffect(() => {
@@ -111,6 +118,11 @@ export default function App() {
       setupNotifications(session.token);
     }
   }, [session]);
+
+  async function handleOnboardingDone() {
+    await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+    setOnboarding(false);
+  }
 
   function handleLogout() {
     setSession(null);
@@ -120,6 +132,13 @@ export default function App() {
     <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }}>
       <ActivityIndicator color={C.accent} size="large" />
     </View>
+  );
+
+  if (onboarding) return (
+    <SafeAreaProvider style={{ backgroundColor: C.bg }}>
+      <StatusBar style="light" />
+      <OnboardingScreen onDone={handleOnboardingDone} />
+    </SafeAreaProvider>
   );
 
   if (!session) return (

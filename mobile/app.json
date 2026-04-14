@@ -49,6 +49,7 @@
       ]
     ],
     "extra": {
+      "apiUrl": "https://snapit.up.railway.app",
       "eas": {
         "projectId": "270fef92-cc98-488b-a74b-9bef165acaa1"
       }
