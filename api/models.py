@@ -148,6 +148,17 @@ class MeResponse(BaseModel):
     created_at:     datetime
 
 
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str = Field(min_length=6, max_length=100)
+
+class DeleteAccountRequest(BaseModel):
+    password: str
+
+class PushTokenRequest(BaseModel):
+    token: str
+
+
 # ─── Friends schemas ──────────────────────────────────────────────────────────
 
 class FriendInfo(BaseModel):

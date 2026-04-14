@@ -41,6 +41,7 @@ from api.models import (
     WeekPreviewResponse, WeekPreviewDay,
     ErrorResponse,
     RegisterRequest, LoginRequest, TokenResponse, MeResponse,
+    ChangePasswordRequest, DeleteAccountRequest, PushTokenRequest,
     FriendInfo, FriendRequest, FriendsResponse,
     HistoryEntry, HistoryResponse,
     CommentEntry, CommentRequest,
@@ -740,6 +741,69 @@ def update_profile(
         max_streak=current_user.max_streak,
         created_at=current_user.created_at,
     )
+
+
+@app.post("/me/password", tags=["Auth"])
+def change_password(
+    body: ChangePasswordRequest,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_auth),
+):
+    """Cambia la contraseña del usuario autenticado."""
+    if current_user.is_guest or not current_user.hashed_password:
+        raise HTTPException(status_code=400, detail="Los usuarios invitados no tienen contraseña")
+    if not verify_password(body.old_password, current_user.hashed_password):
+        raise HTTPException(status_code=401, detail="Contraseña actual incorrecta")
+    current_user.hashed_password = hash_password(body.new_password)
+    session.add(current_user)
+    session.commit()
+    return {"message": "Contraseña actualizada correctamente"}
+
+
+@app.delete("/me", tags=["Auth"])
+def delete_account(
+    body: DeleteAccountRequest,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_auth),
+):
+    """Elimina la cuenta del usuario autenticado de forma permanente."""
+    if not current_user.is_guest:
+        if not current_user.hashed_password or not verify_password(body.password, current_user.hashed_password):
+            raise HTTPException(status_code=401, detail="Contraseña incorrecta")
+    # Borrar datos del usuario
+    submissions = session.exec(select(DailySubmission).where(DailySubmission.user_id == current_user.id)).all()
+    for s in submissions:
+        likes = session.exec(select(SubmissionLike).where(SubmissionLike.submission_id == s.id)).all()
+        comments = session.exec(select(SubmissionComment).where(SubmissionComment.submission_id == s.id)).all()
+        for l in likes: session.delete(l)
+        for c in comments: session.delete(c)
+        session.delete(s)
+    friendships = session.exec(
+        select(Friendship).where(
+            (Friendship.requester_id == current_user.id) | (Friendship.receiver_id == current_user.id)
+        )
+    ).all()
+    for f in friendships: session.delete(f)
+    likes_given = session.exec(select(SubmissionLike).where(SubmissionLike.user_id == current_user.id)).all()
+    comments_given = session.exec(select(SubmissionComment).where(SubmissionComment.user_id == current_user.id)).all()
+    for l in likes_given: session.delete(l)
+    for c in comments_given: session.delete(c)
+    session.delete(current_user)
+    session.commit()
+    return {"message": "Cuenta eliminada correctamente"}
+
+
+@app.post("/me/push-token", tags=["Auth"])
+def save_push_token(
+    body: PushTokenRequest,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_auth),
+):
+    """Guarda el token de notificaciones push del dispositivo."""
+    current_user.push_token = body.token
+    session.add(current_user)
+    session.commit()
+    return {"message": "Token guardado"}
 
 
 # ── Likes & Comentarios ───────────────────────────────────────────────────────

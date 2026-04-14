@@ -26,6 +26,7 @@ class User(SQLModel, table=True):
     hashed_password: Optional[str] = Field(default=None)
     is_guest:        bool          = Field(default=True)
     is_active:       bool          = Field(default=True)
+    push_token:      Optional[str] = Field(default=None)
 
 
 class DailySubmission(SQLModel, table=True):
@@ -123,6 +124,7 @@ def _migrate():
         ("user", "hashed_password", "TEXT    DEFAULT NULL"),
         ("user", "is_guest",        "INTEGER DEFAULT 1"),
         ("user", "is_active",       "INTEGER DEFAULT 1"),
+        ("user", "push_token",      "TEXT DEFAULT NULL"),
         # Tabla friendship — añadida en Fase 4b
         # (se crea entera con create_all, no necesita ADD COLUMN)
     ]

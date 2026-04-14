@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator, Platform } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import * as Notifications from 'expo-notifications';
 
 import { AuthSession } from './src/types';
 import { loadSession } from './src/auth';
+import { apiSavePushToken } from './src/api';
 import { C } from './src/theme';
 
 import AuthScreen        from './src/screens/AuthScreen';
@@ -14,8 +16,19 @@ import PlayScreen        from './src/screens/PlayScreen';
 import FeedScreen        from './src/screens/FeedScreen';
 import FriendsScreen     from './src/screens/FriendsScreen';
 import LeaderboardScreen from './src/screens/LeaderboardScreen';
+import ProfileScreen     from './src/screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert:  true,
+    shouldShowBanner: true,
+    shouldShowList:   true,
+    shouldPlaySound:  true,
+    shouldSetBadge:   false,
+  }),
+});
 
 const NavTheme = {
   ...DefaultTheme,
@@ -31,8 +44,59 @@ const NavTheme = {
 };
 
 const TAB_ICONS: Record<string, string> = {
-  Jugar: '📷', Feed: '🌐', Amigos: '👥', Ranking: '🏆',
+  Jugar: '📷', Feed: '🌐', Amigos: '👥', Ranking: '🏆', Perfil: '👤',
 };
+
+// Hora "sorpresa" determinista por fecha (entre 8:00 y 19:59)
+function getDailyNotifTime(d: Date): Date {
+  const dateStr = `snapit_v1:${d.toISOString().split('T')[0]}`;
+  let hash = 0;
+  for (let i = 0; i < dateStr.length; i++) {
+    hash = Math.imul(31, hash) + dateStr.charCodeAt(i) | 0;
+  }
+  const minutesOffset = Math.abs(hash) % 720;
+  const trigger = new Date(d);
+  trigger.setHours(8 + Math.floor(minutesOffset / 60), minutesOffset % 60, 0, 0);
+  return trigger;
+}
+
+async function setupNotifications(authToken: string) {
+  const { status } = await Notifications.requestPermissionsAsync();
+  if (status !== 'granted') return;
+
+  // Canal Android
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('daily', {
+      name: 'Reto diario',
+      importance: Notifications.AndroidImportance.HIGH,
+    });
+  }
+
+  // Programar notificación para hoy y mañana
+  await Notifications.cancelAllScheduledNotificationsAsync();
+  const now = new Date();
+  for (let offset = 0; offset <= 1; offset++) {
+    const day = new Date(now);
+    day.setDate(day.getDate() + offset);
+    const trigger = getDailyNotifTime(day);
+    if (trigger > now) {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '📷 SnapIT — ¡Ya puedes jugar!',
+          body:  'El reto de hoy ya está disponible. ¿Lo detectas?',
+          sound: true,
+        },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: trigger },
+      });
+    }
+  }
+
+  // Guardar push token en servidor (falla silenciosamente en simulador)
+  try {
+    const { data } = await Notifications.getExpoPushTokenAsync();
+    await apiSavePushToken(data, authToken);
+  } catch { /* simulador o sin conexión */ }
+}
 
 export default function App() {
   const [session,  setSession]  = useState<AuthSession | null>(null);
@@ -41,6 +105,16 @@ export default function App() {
   useEffect(() => {
     loadSession().then(s => { setSession(s); setChecking(false); });
   }, []);
+
+  useEffect(() => {
+    if (session && !session.isGuest) {
+      setupNotifications(session.token);
+    }
+  }, [session]);
+
+  function handleLogout() {
+    setSession(null);
+  }
 
   if (checking) return (
     <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }}>
@@ -82,14 +156,21 @@ export default function App() {
           >
             {() => <PlayScreen session={session} />}
           </Tab.Screen>
+
           <Tab.Screen name="Feed">
             {() => <FeedScreen session={session} />}
           </Tab.Screen>
+
           <Tab.Screen name="Amigos">
             {() => <FriendsScreen session={session} />}
           </Tab.Screen>
+
           <Tab.Screen name="Ranking">
             {() => <LeaderboardScreen session={session} />}
+          </Tab.Screen>
+
+          <Tab.Screen name="Perfil" options={{ title: 'Mi perfil' }}>
+            {() => <ProfileScreen session={session} onLogout={handleLogout} />}
           </Tab.Screen>
         </Tab.Navigator>
       </NavigationContainer>

@@ -141,3 +141,24 @@ export const apiPostComment = (sid: number, text: string, token: string) =>
 
 export const apiHistory = (username: string, token?: string) =>
   request<any>(`/user/${username}/history`, {}, token);
+
+export const apiChangePassword = (old_password: string, new_password: string, token: string) =>
+  request<{ message: string }>('/me/password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ old_password, new_password }),
+  }, token);
+
+export const apiDeleteAccount = (password: string, token: string) =>
+  request<{ message: string }>('/me', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  }, token);
+
+export const apiSavePushToken = (pushToken: string, authToken: string) =>
+  request<{ message: string }>('/me/push-token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: pushToken }),
+  }, authToken);
