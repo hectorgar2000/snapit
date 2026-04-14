@@ -1,0 +1,1928 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SnapIT</title>
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#7c6dff" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SnapIT" />
+  <link rel="apple-touch-icon" href="/static/icon-192.svg" />
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0a0f;
+      --surface:   #13131a;
+      --card:      #1c1c27;
+      --border:    #2a2a3a;
+      --accent:    #7c6dff;
+      --accent2:   #ff6db0;
+      --green:     #4ade80;
+      --red:       #f87171;
+      --yellow:    #fbbf24;
+      --text:      #f0f0f8;
+      --muted:     #888899;
+      --radius:    16px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── Layout ───────────────────────────────────────────────── */
+    .app { width: 100%; max-width: 480px; padding: 0 16px 100px; }
+
+    /* ── Header ───────────────────────────────────────────────── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 0 16px;
+    }
+    .logo { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+    .logo span { color: var(--accent); }
+    .streak-badge {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 6px 14px;
+      font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px;
+    }
+
+    /* ── Nav ──────────────────────────────────────────────────── */
+    nav {
+      display: flex; gap: 4px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 4px; margin-bottom: 20px;
+    }
+    nav button {
+      flex: 1; padding: 10px; border: none; border-radius: 9px;
+      background: transparent; color: var(--muted);
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s;
+    }
+    nav button.active {
+      background: var(--accent); color: white;
+    }
+
+    /* ── Cards ────────────────────────────────────────────────── */
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+    }
+
+    /* ── Challenge Card ───────────────────────────────────────── */
+    .challenge-card {
+      text-align: center; padding: 32px 20px;
+      background: linear-gradient(135deg, #1c1c2e 0%, #1a1a30 100%);
+      border: 1px solid var(--accent);
+      position: relative; overflow: hidden;
+    }
+    .challenge-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(124,109,255,.15) 0%, transparent 70%);
+    }
+    .challenge-date { font-size: 12px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+    .challenge-emoji { font-size: 80px; margin: 8px 0; line-height: 1; }
+    .challenge-name { font-size: 28px; font-weight: 800; margin-bottom: 6px; }
+    .challenge-diff {
+      display: inline-block; padding: 4px 14px; border-radius: 20px;
+      font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;
+    }
+    .diff-easy   { background: rgba(74,222,128,.15); color: var(--green); border: 1px solid rgba(74,222,128,.3); }
+    .diff-medium { background: rgba(251,191,36,.15);  color: var(--yellow); border: 1px solid rgba(251,191,36,.3); }
+    .diff-hard   { background: rgba(248,113,113,.15); color: var(--red);  border: 1px solid rgba(248,113,113,.3); }
+    .challenge-hint { font-size: 14px; color: var(--muted); margin-top: 4px; }
+    .challenge-points { font-size: 13px; color: var(--accent); margin-top: 8px; font-weight: 600; }
+
+    /* ── Timer ───────────────────────────────────────────────── */
+    .timer-bar {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .timer-label { font-size: 13px; color: var(--muted); }
+    .timer-value { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--yellow); }
+
+    /* ── Camera ───────────────────────────────────────────────── */
+    .camera-section { display: flex; flex-direction: column; gap: 12px; }
+    .camera-wrapper {
+      position: relative; border-radius: var(--radius); overflow: hidden;
+      background: #000; aspect-ratio: 4/3;
+      border: 2px solid var(--border);
+    }
+    #video, #preview-img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    #preview-img { display: none; }
+    .camera-overlay {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      pointer-events: none;
+    }
+    .focus-ring {
+      width: 80px; height: 80px; border: 2px solid rgba(255,255,255,.4);
+      border-radius: 50%; box-shadow: 0 0 0 1px rgba(255,255,255,.1);
+    }
+
+    .attempts-row {
+      display: flex; gap: 8px; justify-content: center;
+    }
+    .attempt-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--border); transition: background .3s;
+    }
+    .attempt-dot.used    { background: var(--accent); }
+    .attempt-dot.current { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+    .attempt-dot.failed  { background: var(--red); }
+
+    /* ── Buttons ─────────────────────────────────────────────── */
+    .btn {
+      width: 100%; padding: 16px; border: none; border-radius: 12px;
+      font-size: 16px; font-weight: 700; cursor: pointer; transition: all .15s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary   { background: var(--accent); color: white; }
+    .btn-primary:hover { background: #6c5df0; }
+    .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+    .btn-success   { background: var(--green); color: #000; }
+    .btn-danger    { background: var(--red); color: white; }
+    .btn-sm {
+      width: auto; padding: 10px 20px; font-size: 14px; border-radius: 10px;
+    }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    .btn-row { display: flex; gap: 10px; }
+    .btn-row .btn { flex: 1; }
+
+    /* ── Score Screen ─────────────────────────────────────────── */
+    .score-hero {
+      text-align: center; padding: 28px 20px 20px;
+      background: linear-gradient(135deg, #1a1a2e, #161624);
+      border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px;
+    }
+    .score-result-icon { font-size: 56px; margin-bottom: 8px; }
+    .score-total { font-size: 56px; font-weight: 900; letter-spacing: -2px; }
+    .score-total.win  { color: var(--green); }
+    .score-total.lose { color: var(--red); }
+    .score-label { font-size: 14px; color: var(--muted); margin-top: 4px; }
+    .score-conf  { font-size: 13px; color: var(--accent); margin-top: 6px; font-weight: 600; }
+
+    .breakdown-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;
+    }
+    .breakdown-item {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px;
+    }
+    .breakdown-item .b-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+    .breakdown-item .b-value { font-size: 20px; font-weight: 800; }
+    .b-pos { color: var(--green); }
+    .b-neg { color: var(--red); }
+    .b-neu { color: var(--text); }
+    .b-accent { color: var(--accent); }
+
+    .annotated-wrapper {
+      border-radius: var(--radius); overflow: hidden; margin-bottom: 16px;
+      border: 1px solid var(--border);
+    }
+    .annotated-wrapper img { width: 100%; display: block; }
+
+    /* ── Feed ─────────────────────────────────────────────────── */
+    .feed-entry {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; margin-bottom: 12px;
+    }
+    .feed-header {
+      display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+    }
+    .feed-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 800; flex-shrink: 0;
+    }
+    .feed-meta { flex: 1; }
+    .feed-name { font-weight: 700; font-size: 15px; }
+    .feed-time { font-size: 12px; color: var(--muted); }
+    .feed-score { font-size: 18px; font-weight: 800; }
+    .feed-score.win { color: var(--green); }
+    .feed-score.lose { color: var(--red); }
+    .feed-image-wrap { position: relative; }
+    .feed-image-wrap img { width: 100%; display: block; max-height: 240px; object-fit: cover; }
+    .feed-img-placeholder {
+      width: 100%; height: 160px; background: var(--surface);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 48px;
+    }
+    .feed-tags {
+      display: flex; gap: 6px; padding: 10px 16px; flex-wrap: wrap;
+    }
+    .tag {
+      font-size: 11px; font-weight: 600; padding: 3px 10px;
+      border-radius: 20px; background: var(--surface); border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .tag.correct   { background: rgba(74,222,128,.1); color: var(--green); border-color: rgba(74,222,128,.3); }
+    .tag.incorrect { background: rgba(248,113,113,.1); color: var(--red);  border-color: rgba(248,113,113,.3); }
+
+    /* ── Likes & Comments ────────────────────────────────────── */
+    .feed-actions {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 16px 4px; border-top: 1px solid var(--border);
+    }
+    .btn-like {
+      display: flex; align-items: center; gap: 5px;
+      background: none; border: 1px solid var(--border); border-radius: 20px;
+      padding: 5px 12px; font-size: 13px; font-weight: 600; cursor: pointer;
+      color: var(--muted); transition: all .15s;
+    }
+    .btn-like:hover    { border-color: var(--accent2); color: var(--accent2); }
+    .btn-like.liked    { background: rgba(255,109,176,.12); border-color: var(--accent2); color: var(--accent2); }
+    .btn-comments-toggle {
+      display: flex; align-items: center; gap: 5px;
+      background: none; border: 1px solid var(--border); border-radius: 20px;
+      padding: 5px 12px; font-size: 13px; font-weight: 600; cursor: pointer;
+      color: var(--muted); transition: all .15s; margin-left: auto;
+    }
+    .btn-comments-toggle:hover { border-color: var(--accent); color: var(--accent); }
+    .comments-section {
+      padding: 0 16px 12px; display: none;
+    }
+    .comments-section.open { display: block; }
+    .comment-item {
+      display: flex; gap: 8px; margin-top: 8px;
+    }
+    .comment-avatar {
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 800;
+    }
+    .comment-bubble {
+      background: var(--surface); border-radius: 10px; padding: 6px 10px;
+      flex: 1; font-size: 13px;
+    }
+    .comment-author { font-weight: 700; font-size: 11px; color: var(--accent); }
+    .comment-text   { color: var(--text); margin-top: 1px; }
+    .comment-input-row {
+      display: flex; gap: 6px; margin-top: 10px;
+    }
+    .comment-input-row input {
+      flex: 1; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text);
+      outline: none;
+    }
+    .comment-input-row input:focus { border-color: var(--accent); }
+    .comment-input-row button {
+      background: var(--accent); border: none; border-radius: 20px;
+      padding: 6px 14px; font-size: 13px; font-weight: 700; color: white; cursor: pointer;
+    }
+
+    /* ── Modal perfil ─────────────────────────────────────────── */
+    .profile-modal {
+      display: none; position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,.7); align-items: flex-end; justify-content: center;
+    }
+    .profile-modal.open { display: flex; }
+    .profile-sheet {
+      background: var(--surface); border-radius: 20px 20px 0 0;
+      width: 100%; max-width: 480px; max-height: 88vh;
+      overflow-y: auto; padding: 24px 20px 40px;
+    }
+    .profile-handle {
+      width: 40px; height: 4px; border-radius: 2px;
+      background: var(--border); margin: 0 auto 20px;
+    }
+    .profile-avatar-big {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; font-weight: 900; margin: 0 auto 12px;
+    }
+    .profile-edit-row {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+    }
+    .profile-edit-row input {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 6px 12px; font-size: 15px; font-weight: 700;
+      color: var(--text); outline: none; flex: 1;
+    }
+    .profile-edit-row input:focus { border-color: var(--accent); }
+    .profile-stats-row {
+      display: flex; gap: 12px; margin: 16px 0;
+    }
+    .profile-stat {
+      flex: 1; background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 12px; text-align: center;
+    }
+    .profile-stat-val { font-size: 22px; font-weight: 900; }
+    .profile-stat-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .history-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .history-row:last-child { border-bottom: none; }
+    .history-emoji { font-size: 24px; flex-shrink: 0; }
+    .history-info  { flex: 1; }
+    .history-name  { font-weight: 700; font-size: 13px; }
+    .history-date  { font-size: 11px; color: var(--muted); }
+    .history-score { font-weight: 800; font-size: 15px; }
+    .history-score.win  { color: var(--green); }
+    .history-score.lose { color: var(--red); }
+
+    /* ── Leaderboard ──────────────────────────────────────────── */
+    .lb-row {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px; border-bottom: 1px solid var(--border);
+    }
+    .lb-row:last-child { border-bottom: none; }
+    .lb-rank { font-size: 18px; font-weight: 900; width: 28px; text-align: center; flex-shrink: 0; }
+    .lb-rank.gold   { color: #fbbf24; }
+    .lb-rank.silver { color: #94a3b8; }
+    .lb-rank.bronze { color: #cd7f32; }
+    .lb-avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; flex-shrink: 0;
+    }
+    .lb-info { flex: 1; }
+    .lb-name { font-weight: 700; font-size: 15px; }
+    .lb-streak { font-size: 12px; color: var(--muted); }
+    .lb-score { font-size: 17px; font-weight: 800; color: var(--accent); }
+
+    /* ── Username modal ───────────────────────────────────────── */
+    .modal-bg {
+      position: fixed; inset: 0; background: rgba(0,0,0,.8);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100; padding: 16px;
+    }
+    .modal {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px; width: 100%; max-width: 360px;
+    }
+    .modal h2 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+    .modal p  { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
+    .input {
+      width: 100%; padding: 14px 16px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); font-size: 16px; margin-bottom: 12px;
+      outline: none; transition: border .2s;
+    }
+    .input:focus { border-color: var(--accent); }
+
+    /* ── Loader ───────────────────────────────────────────────── */
+    .loader {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 48px 0; gap: 16px;
+    }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%; animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader p { color: var(--muted); font-size: 14px; }
+
+    /* ── Done badge ───────────────────────────────────────────── */
+    .done-card {
+      text-align: center; padding: 32px 20px;
+      background: linear-gradient(135deg, rgba(74,222,128,.05), rgba(74,222,128,.1));
+      border: 1px solid rgba(74,222,128,.3);
+      border-radius: var(--radius);
+    }
+    .done-card .done-icon { font-size: 56px; margin-bottom: 10px; }
+    .done-card h2 { font-size: 20px; font-weight: 800; color: var(--green); }
+    .done-card p  { font-size: 14px; color: var(--muted); margin-top: 6px; }
+    .done-card .done-score { font-size: 40px; font-weight: 900; color: var(--green); margin: 8px 0; }
+
+    /* ── Week mini-calendar ───────────────────────────────────── */
+    .week-row {
+      display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .week-day {
+      flex-shrink: 0; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 8px; text-align: center; min-width: 58px;
+    }
+    .week-day.today { border-color: var(--accent); background: rgba(124,109,255,.1); }
+    .week-day .wd-name { font-size: 10px; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+    .week-day .wd-emoji { font-size: 22px; margin-bottom: 2px; }
+    .week-day .wd-diff  { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+
+    /* ── Friends ──────────────────────────────────────────────── */
+    .friend-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; background: var(--card);
+      border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px;
+    }
+    .friend-avatar {
+      width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 800;
+    }
+    .friend-info { flex: 1; }
+    .friend-name  { font-weight: 700; font-size: 15px; }
+    .friend-meta  { font-size: 12px; color: var(--muted); }
+    .friend-actions { display: flex; gap: 6px; }
+    .btn-icon {
+      padding: 7px 12px; border-radius: 8px; border: none; cursor: pointer;
+      font-size: 13px; font-weight: 600; transition: opacity .15s;
+    }
+    .btn-icon:hover { opacity: .8; }
+    .btn-accept  { background: rgba(74,222,128,.2);  color: var(--green); }
+    .btn-decline { background: rgba(248,113,113,.15); color: var(--red); }
+    .btn-add     { background: rgba(124,109,255,.2);  color: var(--accent); }
+    .btn-pending { background: var(--surface); color: var(--muted); }
+    .btn-profile { background: var(--surface); color: var(--text); }
+
+    /* ── History calendar ─────────────────────────────────────── */
+    .cal-day {
+      width: 24px; height: 24px; border-radius: 4px;
+      background: var(--border); cursor: pointer; position: relative;
+      transition: transform .1s;
+    }
+    .cal-day:hover { transform: scale(1.2); }
+    .cal-day.correct { background: var(--green); }
+    .cal-day.failed  { background: var(--red); }
+    .cal-day.today   { outline: 2px solid var(--accent); }
+
+    .history-entry {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 16px; margin-bottom: 8px;
+      display: flex; gap: 12px; align-items: center;
+    }
+    .history-entry .he-emoji { font-size: 28px; flex-shrink: 0; }
+    .history-entry .he-info  { flex: 1; }
+    .history-entry .he-date  { font-size: 11px; color: var(--muted); }
+    .history-entry .he-name  { font-weight: 700; font-size: 15px; }
+    .history-entry .he-tags  { display: flex; gap: 5px; margin-top: 4px; flex-wrap: wrap; }
+    .history-entry .he-score { font-size: 20px; font-weight: 800; }
+    .he-score.win  { color: var(--green); }
+    .he-score.lose { color: var(--red); }
+
+    /* ── Misc ─────────────────────────────────────────────────── */
+    .section-title {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .8px; color: var(--muted); margin-bottom: 10px;
+    }
+    .empty-state { text-align: center; padding: 40px; color: var(--muted); font-size: 14px; }
+    .hidden { display: none !important; }
+
+    /* ── Toast ───────────────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(12px);
+      background: var(--card); border: 1px solid var(--border);
+      color: var(--text); font-size: 14px; font-weight: 600;
+      padding: 10px 20px; border-radius: 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.5);
+      opacity: 0; transition: opacity .25s, transform .25s;
+      pointer-events: none; z-index: 200; white-space: nowrap;
+    }
+    #toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- ── Auth modal ──────────────────────────────────────────────────────── -->
+<div class="modal-bg" id="modal-auth">
+  <div class="modal" style="max-width:400px">
+
+    <!-- Logo -->
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-size:32px;font-weight:900;letter-spacing:-1px">Snap<span style="color:var(--accent)">IT</span></div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px">El juego diario de detección de objetos</div>
+    </div>
+
+    <!-- Tab switcher -->
+    <div style="display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;margin-bottom:20px">
+      <button id="tab-login-btn"    onclick="showAuthTab('login')"    style="flex:1;padding:9px;border:none;border-radius:7px;background:var(--accent);color:white;font-weight:700;font-size:13px;cursor:pointer">Entrar</button>
+      <button id="tab-register-btn" onclick="showAuthTab('register')" style="flex:1;padding:9px;border:none;border-radius:7px;background:transparent;color:var(--muted);font-weight:700;font-size:13px;cursor:pointer">Registrarse</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="auth-login">
+      <input class="input" id="login-email"    type="email"    placeholder="Email" autocomplete="email" />
+      <input class="input" id="login-password" type="password" placeholder="Contraseña" autocomplete="current-password" />
+      <div id="login-error" style="color:var(--red);font-size:13px;margin-bottom:10px;display:none"></div>
+      <button class="btn btn-primary" id="btn-login" onclick="doLogin()">Iniciar sesión →</button>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="auth-register" style="display:none">
+      <input class="input" id="reg-username"    type="text"     placeholder="Nombre de usuario (ej. hector)" maxlength="20" autocomplete="username" />
+      <input class="input" id="reg-displayname" type="text"     placeholder="Nombre visible (ej. Héctor)"    maxlength="30" />
+      <input class="input" id="reg-email"       type="email"    placeholder="Email"                           autocomplete="email" />
+      <input class="input" id="reg-password"    type="password" placeholder="Contraseña (mín. 6 caracteres)" autocomplete="new-password" />
+      <div id="register-error" style="color:var(--red);font-size:13px;margin-bottom:10px;display:none"></div>
+      <button class="btn btn-primary" id="btn-register" onclick="doRegister()">Crear cuenta →</button>
+    </div>
+
+    <!-- Separador -->
+    <div style="display:flex;align-items:center;gap:10px;margin:16px 0">
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+      <span style="font-size:12px;color:var(--muted)">o continúa sin cuenta</span>
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+    </div>
+
+    <!-- GUEST -->
+    <div>
+      <input class="input" id="guest-username"    placeholder="Nombre de usuario" maxlength="20" />
+      <input class="input" id="guest-displayname" placeholder="Nombre visible (opcional)" maxlength="30" />
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">
+        ⚠️ Sin cuenta tu racha no persiste entre dispositivos
+      </div>
+      <button class="btn btn-secondary" onclick="doGuest()">Jugar como invitado →</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── App ────────────────────────────────────────────────────────────── -->
+<div class="app">
+  <header>
+    <div class="logo">Snap<span>IT</span></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button id="btn-notif"
+        onclick="setupNotifications()"
+        style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--muted);padding:4px 8px;border-radius:8px"
+        title="Activar notificación diaria">🔔</button>
+      <div class="streak-badge" id="streak-badge" style="cursor:pointer" onclick="toggleUserMenu()" title="Tu perfil">
+        🔥 <span id="streak-count">0</span>
+      </div>
+      <button id="btn-logout" onclick="logout()"
+        style="background:none;border:1px solid var(--border);border-radius:20px;cursor:pointer;
+               font-size:13px;color:var(--red);padding:6px 12px;font-weight:600;
+               display:none;transition:background .2s"
+        onmouseover="this.style.background='rgba(248,113,113,.12)'"
+        onmouseout="this.style.background='none'"
+        title="Cerrar sesión">Salir</button>
+    </div>
+  </header>
+
+  <!-- Mini menú de usuario -->
+  <div id="user-menu" style="display:none;position:fixed;top:64px;right:16px;z-index:50;
+    background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:8px;min-width:180px;box-shadow:0 8px 32px rgba(0,0,0,.4)">
+    <div style="padding:10px 12px;border-bottom:1px solid var(--border);margin-bottom:4px">
+      <div style="font-weight:700;font-size:14px" id="menu-display-name">—</div>
+      <div style="font-size:11px;color:var(--muted)" id="menu-username">—</div>
+      <div style="font-size:11px;margin-top:2px" id="menu-account-type">—</div>
+    </div>
+    <button onclick="openProfile();toggleUserMenu()"
+      style="width:100%;text-align:left;padding:9px 12px;background:none;border:none;color:var(--text);font-size:13px;cursor:pointer;border-radius:8px">
+      👤 Mi perfil
+    </button>
+    <button onclick="switchTab('leaderboard');toggleUserMenu()"
+      style="width:100%;text-align:left;padding:9px 12px;background:none;border:none;color:var(--text);font-size:13px;cursor:pointer;border-radius:8px">
+      🏆 Mi ranking
+    </button>
+    <button onclick="logout()"
+      style="width:100%;text-align:left;padding:9px 12px;background:none;border:none;color:var(--red);font-size:13px;cursor:pointer;border-radius:8px">
+      🚪 Cerrar sesión
+    </button>
+  </div>
+
+  <nav>
+    <button class="active" data-tab="play"        onclick="switchTab('play')">📷 Jugar</button>
+    <button            data-tab="feed"        onclick="switchTab('feed')">🌐 Feed</button>
+    <button            data-tab="friends"     onclick="switchTab('friends')">👥 Amigos</button>
+    <button            data-tab="leaderboard" onclick="switchTab('leaderboard')">🏆 Ranking</button>
+  </nav>
+
+  <!-- ══ TAB: PLAY ══════════════════════════════════════════════════════ -->
+  <div id="tab-play">
+
+    <!-- Week calendar -->
+    <div class="section-title">Esta semana</div>
+    <div class="week-row" id="week-row">
+      <div class="loader"><div class="spinner"></div></div>
+    </div>
+    <div style="margin-bottom:16px"></div>
+
+    <!-- Challenge card -->
+    <div class="challenge-card card" id="challenge-card">
+      <div class="loader"><div class="spinner"></div><p>Cargando reto…</p></div>
+    </div>
+
+    <!-- Already done -->
+    <div class="done-card hidden" id="done-card">
+      <div class="done-icon">🎯</div>
+      <h2>¡Ya completaste el reto de hoy!</h2>
+      <div class="done-score" id="done-score">—</div>
+      <p>Vuelve mañana para un nuevo objeto</p>
+    </div>
+
+    <!-- Timer -->
+    <div class="timer-bar card hidden" id="timer-bar">
+      <span class="timer-label">⏱ Tiempo transcurrido</span>
+      <span class="timer-value" id="timer-display">00:00</span>
+    </div>
+
+    <!-- Camera -->
+    <div class="camera-section hidden" id="camera-section">
+      <div class="camera-wrapper">
+        <video id="video" autoplay playsinline muted></video>
+        <img  id="preview-img" alt="preview" />
+        <div class="camera-overlay"><div class="focus-ring"></div></div>
+      </div>
+
+      <!-- Recordatorio del objetivo mientras tienes la cámara activa -->
+      <div id="camera-target-reminder" style="
+        text-align:center; padding:8px 12px;
+        background:rgba(124,109,255,.15); border:1px solid rgba(124,109,255,.3);
+        border-radius:10px; font-size:14px; font-weight:600;
+      "></div>
+
+      <div class="attempts-row" id="attempts-row">
+        <div class="attempt-dot current" id="dot-1"></div>
+        <div class="attempt-dot"         id="dot-2"></div>
+        <div class="attempt-dot"         id="dot-3"></div>
+      </div>
+
+      <div class="btn-row" id="btn-row-capture">
+        <button class="btn btn-primary" id="btn-snap" onclick="snapPhoto()">📸 Fotografiar</button>
+      </div>
+      <div class="btn-row hidden" id="btn-row-preview">
+        <button class="btn btn-secondary btn-sm" onclick="retakePhoto()">↩ Repetir</button>
+        <button class="btn btn-success"          onclick="submitPhoto()" id="btn-submit">✓ Usar esta</button>
+      </div>
+    </div>
+
+    <!-- Start button -->
+    <button class="btn btn-primary hidden" id="btn-start-camera" onclick="startCamera()">
+      📷 Hacer foto
+    </button>
+
+    <!-- Score result -->
+    <div id="score-section" class="hidden">
+      <!-- filled dynamically -->
+    </div>
+
+  </div><!-- /tab-play -->
+
+  <!-- ══ TAB: FRIENDS ══════════════════════════════════════════════════ -->
+  <div id="tab-friends" class="hidden">
+
+    <!-- Buscar usuarios -->
+    <div class="card" style="padding:14px 16px;margin-bottom:12px">
+      <div style="display:flex;gap:8px">
+        <input class="input" id="friend-search-input"
+          placeholder="Buscar usuario…" style="margin:0;flex:1"
+          oninput="searchUsers(this.value)" />
+      </div>
+      <div id="friend-search-results" style="margin-top:10px"></div>
+    </div>
+
+    <!-- Solicitudes recibidas -->
+    <div id="friend-requests-section" class="hidden">
+      <div class="section-title">Solicitudes recibidas</div>
+      <div id="friend-requests-list" style="margin-bottom:16px"></div>
+    </div>
+
+    <!-- Amigos -->
+    <div class="section-title">Mis amigos</div>
+    <div id="friends-list">
+      <div class="loader"><div class="spinner"></div><p>Cargando…</p></div>
+    </div>
+
+    <!-- Historial (se muestra al pulsar en un amigo o en "Mi historial") -->
+    <div id="history-section" class="hidden" style="margin-top:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="section-title" style="margin:0" id="history-title">Historial</div>
+        <button onclick="closeHistory()"
+          style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px">✕ Cerrar</button>
+      </div>
+      <!-- Calendario de actividad -->
+      <div class="card" style="padding:16px;margin-bottom:12px">
+        <div class="section-title">Actividad (30 días)</div>
+        <div id="history-calendar" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px"></div>
+        <div style="display:flex;gap:12px;margin-top:10px;font-size:11px;color:var(--muted)">
+          <span><span style="display:inline-block;width:10px;height:10px;background:var(--green);border-radius:2px;margin-right:4px"></span>Correcto</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:var(--red);border-radius:2px;margin-right:4px"></span>Fallido</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:var(--border);border-radius:2px;margin-right:4px"></span>Sin jugar</span>
+        </div>
+      </div>
+      <!-- Entradas del historial -->
+      <div id="history-entries"></div>
+    </div>
+
+    <!-- Botón "Mi historial" -->
+    <div style="margin-top:16px">
+      <button class="btn btn-secondary" onclick="loadHistory(username)">
+        📅 Ver mi historial completo
+      </button>
+    </div>
+
+  </div><!-- /tab-friends -->
+
+  <!-- ══ TAB: FEED ══════════════════════════════════════════════════════ -->
+  <div id="tab-feed" class="hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div class="section-title" style="margin:0">Feed de hoy</div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)">
+        <span>Solo amigos</span>
+        <div id="friends-toggle" onclick="toggleFriendsFeed()"
+          style="width:36px;height:20px;background:var(--border);border-radius:10px;cursor:pointer;position:relative;transition:background .2s">
+          <div id="friends-toggle-knob"
+            style="position:absolute;top:3px;left:3px;width:14px;height:14px;background:white;border-radius:50%;transition:left .2s"></div>
+        </div>
+      </div>
+    </div>
+    <div id="feed-container">
+      <div class="loader"><div class="spinner"></div><p>Cargando feed…</p></div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: LEADERBOARD ═══════════════════════════════════════════════ -->
+  <div id="tab-leaderboard" class="hidden">
+    <div class="section-title">Ranking global</div>
+    <div class="card" style="padding:0; overflow:hidden" id="lb-container">
+      <div class="loader"><div class="spinner"></div><p>Cargando ranking…</p></div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- ── Toast ────────────────────────────────────────────────────────────── -->
+<div id="toast"></div>
+
+<!-- ── Modal perfil ─────────────────────────────────────────────────────── -->
+<div class="profile-modal" id="modal-profile" onclick="if(event.target===this)closeProfile()">
+  <div class="profile-sheet">
+    <div class="profile-handle"></div>
+    <div class="profile-avatar-big" id="profile-avatar-big">H</div>
+    <div style="text-align:center;margin-bottom:4px">
+      <div class="profile-edit-row" style="justify-content:center">
+        <input id="profile-display-input" type="text" maxlength="30"
+          style="text-align:center;max-width:200px" placeholder="Tu nombre visible"
+          onblur="saveDisplayName()" onkeydown="if(event.key==='Enter')this.blur()" />
+        <span style="font-size:12px;color:var(--muted);cursor:pointer" onclick="document.getElementById('profile-display-input').focus()">✏️</span>
+      </div>
+      <div id="profile-username-lbl" style="font-size:12px;color:var(--muted);margin-top:2px"></div>
+    </div>
+    <div class="profile-stats-row">
+      <div class="profile-stat">
+        <div class="profile-stat-val" id="pstat-score">—</div>
+        <div class="profile-stat-lbl">Puntos</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-val">🔥 <span id="pstat-streak">0</span></div>
+        <div class="profile-stat-lbl">Racha actual</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-val" id="pstat-max">—</div>
+        <div class="profile-stat-lbl">Mejor racha</div>
+      </div>
+    </div>
+    <div class="section-title" style="margin-bottom:10px">Mis últimas partidas</div>
+    <div id="profile-history-list">
+      <div class="loader"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────
+// Si el frontend se sirve desde FastAPI (http://localhost:8000/app),
+// las peticiones van al mismo origen y no hay CORS.
+// Si se abre como file://, apunta al servidor local.
+const API = window.location.protocol === 'file:'
+  ? 'http://localhost:8000'
+  : window.location.origin;
+
+// ── State ─────────────────────────────────────────────────────────────────
+let username    = localStorage.getItem('snapit_username') || '';
+let displayName = localStorage.getItem('snapit_displayname') || '';
+let authToken   = localStorage.getItem('snapit_token') || null;
+let isGuest     = localStorage.getItem('snapit_is_guest') === 'true';
+let challenge   = null;
+let timerStart  = null;
+let timerInterval = null;
+let currentAttempt = 1;
+let capturedBlob   = null;
+let stream         = null;
+let notifTime      = null;
+let lastShareText  = '';
+let feedEntries    = {};   // sid → entry, para el share del feed
+
+// ── Auth helpers ──────────────────────────────────────────────────────────
+function saveSession(data) {
+  username    = data.username;
+  displayName = data.display_name;
+  authToken   = data.access_token;
+  isGuest     = data.is_guest || false;
+  localStorage.setItem('snapit_username',    username);
+  localStorage.setItem('snapit_displayname', displayName);
+  localStorage.setItem('snapit_token',       authToken);
+  localStorage.setItem('snapit_is_guest',    isGuest);
+}
+
+function authHeaders() {
+  return authToken ? { 'Authorization': `Bearer ${authToken}` } : {};
+}
+
+function logout() {
+  ['snapit_username','snapit_displayname','snapit_token','snapit_is_guest',
+   'snapit_score_today','snapit_notif_epoch'].forEach(k => localStorage.removeItem(k));
+  username = ''; displayName = ''; authToken = null; isGuest = false;
+  updateLogoutBtn();
+  document.getElementById('modal-auth').style.display = 'flex';
+}
+
+// ── Auth tab switcher ─────────────────────────────────────────────────────
+function showAuthTab(tab) {
+  document.getElementById('auth-login').style.display    = tab === 'login'    ? 'block' : 'none';
+  document.getElementById('auth-register').style.display = tab === 'register' ? 'block' : 'none';
+  document.getElementById('tab-login-btn').style.background    = tab === 'login'    ? 'var(--accent)' : 'transparent';
+  document.getElementById('tab-login-btn').style.color         = tab === 'login'    ? 'white' : 'var(--muted)';
+  document.getElementById('tab-register-btn').style.background = tab === 'register' ? 'var(--accent)' : 'transparent';
+  document.getElementById('tab-register-btn').style.color      = tab === 'register' ? 'white' : 'var(--muted)';
+}
+
+// ── Login ─────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('login-error');
+  errEl.style.display = 'none';
+
+  if (!email || !password) { errEl.textContent = 'Rellena todos los campos'; errEl.style.display = 'block'; return; }
+
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true; btn.textContent = 'Entrando…';
+
+  try {
+    const res  = await fetch(`${API}/login`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.detail || 'Error al iniciar sesión'; errEl.style.display = 'block'; return; }
+    saveSession(data);
+    document.getElementById('modal-auth').style.display = 'none';
+    init();
+  } catch(e) {
+    errEl.textContent = 'Sin conexión con el servidor'; errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Iniciar sesión →';
+  }
+}
+
+// ── Register ──────────────────────────────────────────────────────────────
+async function doRegister() {
+  const username_val = document.getElementById('reg-username').value.trim().toLowerCase().replace(/\s+/g,'_');
+  const display_val  = document.getElementById('reg-displayname').value.trim();
+  const email_val    = document.getElementById('reg-email').value.trim();
+  const password_val = document.getElementById('reg-password').value;
+  const errEl        = document.getElementById('register-error');
+  errEl.style.display = 'none';
+
+  if (!username_val || !email_val || !password_val) { errEl.textContent = 'Rellena todos los campos obligatorios'; errEl.style.display = 'block'; return; }
+  if (password_val.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres'; errEl.style.display = 'block'; return; }
+
+  const btn = document.getElementById('btn-register');
+  btn.disabled = true; btn.textContent = 'Creando cuenta…';
+
+  try {
+    const res  = await fetch(`${API}/register`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ username: username_val, display_name: display_val || username_val, email: email_val, password: password_val }),
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.detail || 'Error al registrarse'; errEl.style.display = 'block'; return; }
+    saveSession(data);
+    document.getElementById('modal-auth').style.display = 'none';
+    init();
+  } catch(e) {
+    errEl.textContent = 'Sin conexión con el servidor'; errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Crear cuenta →';
+  }
+}
+
+// ── Guest ─────────────────────────────────────────────────────────────────
+async function doGuest() {
+  const u = document.getElementById('guest-username').value.trim().toLowerCase().replace(/\s+/g,'_');
+  const d = document.getElementById('guest-displayname').value.trim();
+  if (!u) { alert('Elige un nombre de usuario'); return; }
+
+  try {
+    const res  = await fetch(`${API}/guest?username=${encodeURIComponent(u)}&display_name=${encodeURIComponent(d || u)}`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) { alert(data.detail || 'Error'); return; }
+    saveSession({ ...data, is_guest: true });
+  } catch(e) {
+    // Sin servidor: modo offline puro
+    saveSession({ access_token: '', username: u, display_name: d || u, is_guest: true });
+  }
+  document.getElementById('modal-auth').style.display = 'none';
+  init();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  if (!username) {
+    document.getElementById('modal-auth').style.display = 'flex';
+  } else {
+    document.getElementById('modal-auth').style.display = 'none';
+    init();
+  }
+  // Enter en campos de login/register
+  document.getElementById('login-password').addEventListener('keydown',  e => { if (e.key === 'Enter') doLogin(); });
+  document.getElementById('reg-password').addEventListener('keydown',    e => { if (e.key === 'Enter') doRegister(); });
+  document.getElementById('guest-displayname').addEventListener('keydown', e => { if (e.key === 'Enter') doGuest(); });
+});
+
+function toggleUserMenu() {
+  const menu = document.getElementById('user-menu');
+  const open = menu.style.display === 'none';
+  menu.style.display = open ? 'block' : 'none';
+  if (open) {
+    document.getElementById('menu-display-name').textContent = displayName || username;
+    document.getElementById('menu-username').textContent     = '@' + username;
+    document.getElementById('menu-account-type').textContent = isGuest
+      ? '👤 Invitado — registra tu cuenta para guardar la racha'
+      : '✅ Cuenta registrada';
+    // cerrar al click fuera
+    setTimeout(() => document.addEventListener('click', closeMenuOutside, { once: true }), 50);
+  }
+}
+function closeMenuOutside(e) {
+  const menu = document.getElementById('user-menu');
+  if (!menu.contains(e.target)) menu.style.display = 'none';
+}
+
+function updateLogoutBtn() {
+  const btn = document.getElementById('btn-logout');
+  if (btn) btn.style.display = username ? 'inline-flex' : 'none';
+}
+
+async function init() {
+  updateLogoutBtn();
+  loadWeek();
+  loadChallenge();
+  loadUserStats();
+
+  const savedNotifEpoch = localStorage.getItem('snapit_notif_epoch');
+  if (savedNotifEpoch) notifTime = parseInt(savedNotifEpoch);
+  _resumeNotifIfGranted();
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  ['play','feed','friends','leaderboard'].forEach(t => {
+    document.getElementById(`tab-${t}`).classList.toggle('hidden', t !== tab);
+    document.querySelector(`[data-tab="${t}"]`).classList.toggle('active', t === tab);
+  });
+  if (tab === 'feed')        loadFeed();
+  if (tab === 'friends')     loadFriends();
+  if (tab === 'leaderboard') loadLeaderboard();
+}
+
+// ── Week calendar ─────────────────────────────────────────────────────────
+async function loadWeek() {
+  try {
+    const res = await fetch(`${API}/week`);
+    const data = await res.json();
+    const row = document.getElementById('week-row');
+    const diffColors = { easy: '#4ade80', medium: '#fbbf24', hard: '#f87171' };
+
+    row.innerHTML = data.week.map(d => `
+      <div class="week-day ${d.is_today ? 'today' : ''}">
+        <div class="wd-name">${d.weekday.slice(0,3)}</div>
+        <div class="wd-emoji">${d.object_emoji}</div>
+        <div class="wd-diff" style="color:${diffColors[d.difficulty]}">${d.difficulty}</div>
+      </div>
+    `).join('');
+  } catch(e) {
+    document.getElementById('week-row').innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px">Sin conexión con la API</div>';
+  }
+}
+
+// ── Challenge ─────────────────────────────────────────────────────────────
+// Catálogo offline mínimo (fallback cuando la API no responde)
+const OFFLINE_CATALOG = [
+  { object_name:'Silla', object_emoji:'🪑', difficulty:'easy', base_points:1000, hint:'Algo en lo que te sientas', already_done:false },
+  { object_name:'Sofá',  object_emoji:'🛋️', difficulty:'easy', base_points:1000, hint:'Para descansar en el salón', already_done:false },
+  { object_name:'Mesa',  object_emoji:'🪵', difficulty:'medium', base_points:1500, hint:'Superficie plana con patas', already_done:false },
+];
+
+function offlineChallenge() {
+  const day = new Date().getDay();
+  return { ...OFFLINE_CATALOG[day % OFFLINE_CATALOG.length], date: new Date().toISOString().split('T')[0], weekday: new Date().toLocaleDateString('es-ES',{weekday:'long'}) };
+}
+
+async function loadChallenge() {
+  const card = document.getElementById('challenge-card');
+  try {
+    const res  = await fetch(`${API}/today?username=${username}`, { headers: authHeaders() });
+    challenge  = await res.json();
+
+    const diffClass = `diff-${challenge.difficulty}`;
+    card.innerHTML = `
+      <div class="challenge-date">${formatDate(challenge.date)} · ${challenge.weekday}</div>
+      <div class="challenge-emoji">${challenge.object_emoji}</div>
+      <div class="challenge-name">${challenge.object_name}</div>
+      <span class="challenge-diff ${diffClass}">${diffLabel(challenge.difficulty)}</span>
+      ${challenge.hint ? `<div class="challenge-hint">💡 ${challenge.hint}</div>` : ''}
+      <div class="challenge-points">Hasta ${challenge.base_points.toLocaleString()} pts base</div>
+    `;
+
+    if (challenge.already_done) {
+      showDoneState();
+    } else {
+      // Marcar momento en que el usuario vio el reto (simula notificación)
+      if (!notifTime) notifTime = Date.now();
+      document.getElementById('btn-start-camera').classList.remove('hidden');
+      startTimerDisplay();
+    }
+
+  } catch(e) {
+    // Modo offline: mostrar reto local sin puntuación real
+    challenge = offlineChallenge();
+    const diffClass = `diff-${challenge.difficulty}`;
+    card.innerHTML = `
+      <div class="challenge-date" style="color:var(--red)">⚠️ Modo offline</div>
+      <div class="challenge-emoji">${challenge.object_emoji}</div>
+      <div class="challenge-name">${challenge.object_name}</div>
+      <span class="challenge-diff ${diffClass}">${diffLabel(challenge.difficulty)}</span>
+      ${challenge.hint ? `<div class="challenge-hint">💡 ${challenge.hint}</div>` : ''}
+      <div style="font-size:12px;color:var(--muted);margin-top:10px">
+        Inicia el servidor para guardar tu puntuación:<br>
+        <code style="font-size:11px;color:var(--accent)">python run.py</code>
+      </div>`;
+    if (!notifTime) notifTime = Date.now();
+    document.getElementById('btn-start-camera').classList.remove('hidden');
+    startTimerDisplay();
+  }
+}
+
+function showDoneState() {
+  const score = localStorage.getItem('snapit_score_today');
+  document.getElementById('done-card').classList.remove('hidden');
+  document.getElementById('done-score').textContent = score ? `${Number(score).toLocaleString()} pts` : '—';
+  document.getElementById('btn-start-camera').classList.add('hidden');
+  document.getElementById('timer-bar').classList.add('hidden');
+}
+
+// ── Timer display ─────────────────────────────────────────────────────────
+function startTimerDisplay() {
+  document.getElementById('timer-bar').classList.remove('hidden');
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    const elapsed = notifTime ? Math.floor((Date.now() - notifTime) / 1000) : 0;
+    document.getElementById('timer-display').textContent = formatTime(elapsed);
+  }, 1000);
+}
+
+function formatTime(s) {
+  const m = Math.floor(s / 60).toString().padStart(2,'0');
+  const sec = (s % 60).toString().padStart(2,'0');
+  return `${m}:${sec}`;
+}
+
+// ── Camera ────────────────────────────────────────────────────────────────
+async function startCamera() {
+  document.getElementById('btn-start-camera').classList.add('hidden');
+  document.getElementById('camera-section').classList.remove('hidden');
+
+  // Mostrar recordatorio del objetivo del día
+  const reminder = document.getElementById('camera-target-reminder');
+  if (challenge && reminder) {
+    reminder.textContent = `🎯 Fotografía: ${challenge.object_emoji} ${challenge.object_name}`;
+  }
+
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 960 } },
+      audio: false
+    });
+    const video = document.getElementById('video');
+    video.srcObject = stream;
+    video.style.display = 'block';
+    document.getElementById('preview-img').style.display = 'none';
+  } catch(e) {
+    alert('No se puede acceder a la cámara: ' + e.message);
+    document.getElementById('btn-start-camera').classList.remove('hidden');
+    document.getElementById('camera-section').classList.add('hidden');
+  }
+}
+
+function snapPhoto() {
+  const video = document.getElementById('video');
+  const canvas = document.createElement('canvas');
+  canvas.width  = video.videoWidth  || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+
+  canvas.toBlob(blob => {
+    capturedBlob = blob;
+    const preview = document.getElementById('preview-img');
+    preview.src = URL.createObjectURL(blob);
+    preview.style.display = 'block';
+    video.style.display = 'none';
+
+    document.getElementById('btn-row-capture').classList.add('hidden');
+    document.getElementById('btn-row-preview').classList.remove('hidden');
+
+    // Siempre resetear el botón de submit al mostrar la previsualización
+    const btnSubmit = document.getElementById('btn-submit');
+    btnSubmit.disabled = false;
+    btnSubmit.textContent = '✓ Usar esta';
+  }, 'image/jpeg', 0.92);
+}
+
+function retakePhoto() {
+  capturedBlob = null;
+  const video   = document.getElementById('video');
+  const preview = document.getElementById('preview-img');
+  video.style.display   = 'block';
+  preview.style.display = 'none';
+  document.getElementById('btn-row-capture').classList.remove('hidden');
+  document.getElementById('btn-row-preview').classList.add('hidden');
+
+  // Resetear el botón por si acaso
+  const btnSubmit = document.getElementById('btn-submit');
+  btnSubmit.disabled = false;
+  btnSubmit.textContent = '✓ Usar esta';
+}
+
+async function submitPhoto() {
+  if (!capturedBlob) return;
+
+  const elapsed = notifTime ? Math.floor((Date.now() - notifTime) / 1000) : 0;
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+  btn.textContent = '🔍 Analizando…';
+
+  const formData = new FormData();
+  formData.append('username',                   username);
+  formData.append('display_name',               displayName);
+  formData.append('seconds_since_notification', elapsed);
+  formData.append('attempt_number',             currentAttempt);
+  formData.append('photo',                      capturedBlob, 'snap.jpg');
+
+  try {
+    const res  = await fetch(`${API}/submit`, { method: 'POST', headers: authHeaders(), body: formData });
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.detail || 'Error al enviar');
+      btn.disabled = false; btn.textContent = '✓ Usar esta';
+      return;
+    }
+
+    stopCamera();
+    showScore(data);
+
+  } catch(e) {
+    const msg = e.message.includes('fetch')
+      ? '⚠️ No se puede conectar al servidor.\n\nAsegúrate de que está corriendo:\n  python run.py'
+      : 'Error: ' + e.message;
+    alert(msg);
+    btn.disabled = false; btn.textContent = '✓ Usar esta';
+  }
+}
+
+function stopCamera() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  clearInterval(timerInterval);
+  document.getElementById('camera-section').classList.add('hidden');
+  document.getElementById('timer-bar').classList.add('hidden');
+}
+
+// ── Score screen ──────────────────────────────────────────────────────────
+function showScore(data) {
+  localStorage.setItem('snapit_score_today', data.total_score);
+
+  const win = data.correct;
+  const section = document.getElementById('score-section');
+  section.classList.remove('hidden');
+
+  // Preparar texto para compartir
+  const scoreBlocks = win
+    ? ['🟩','🟩','🟩'].map((_,i) => i < data.attempt_number ? (i < data.attempt_number - 1 ? '🟥' : '🟩') : '⬛').join('')
+    : '🟥🟥🟥';
+  lastShareText =
+`📸 SnapIT — ${formatDate(new Date().toISOString().split('T')[0])}
+${win ? '🎯' : '❌'} ${challenge?.object_emoji || ''} ${challenge?.object_name || ''}
+${scoreBlocks}  ${data.total_score.toLocaleString()} pts
+${data.speed_label} · ${data.framing_label}${data.attempt_number > 1 ? ` · Intento ${data.attempt_number}/3` : ''}
+snapit.app`;
+
+  let annotatedHtml = '';
+  if (data.annotated_image_b64) {
+    annotatedHtml = `
+      <div class="annotated-wrapper">
+        <img src="data:image/jpeg;base64,${data.annotated_image_b64}" alt="detección" />
+      </div>`;
+  }
+
+  section.innerHTML = `
+    <div class="score-hero">
+      <div class="score-result-icon">${win ? '🎯' : '❌'}</div>
+      <div class="score-total ${win ? 'win' : 'lose'}">${data.total_score.toLocaleString()}</div>
+      <div class="score-label">${win ? '¡Objeto detectado!' : 'Objeto incorrecto'}</div>
+      <div class="score-conf">
+        ${win
+          ? `Confianza: ${data.confidence_pct}%`
+          : `Se detectó <strong>${data.detected_class}</strong>, pero el reto era <strong>${challenge ? challenge.object_name : '?'}</strong>`
+        }
+      </div>
+    </div>
+
+    ${annotatedHtml}
+
+    <div class="section-title">Desglose</div>
+    <div class="breakdown-grid">
+      <div class="breakdown-item">
+        <div class="b-label">Score base</div>
+        <div class="b-value b-neu">${data.base_score.toLocaleString()}</div>
+      </div>
+      <div class="breakdown-item">
+        <div class="b-label">Velocidad</div>
+        <div class="b-value b-pos">+${data.speed_bonus}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${data.speed_label}</div>
+      </div>
+      <div class="breakdown-item">
+        <div class="b-label">Encuadre</div>
+        <div class="b-value b-pos">+${data.framing_bonus}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${data.framing_label}</div>
+      </div>
+      <div class="breakdown-item">
+        <div class="b-label">Clutter</div>
+        <div class="b-value b-neg">-${data.clutter_penalty}</div>
+      </div>
+      ${data.attempt_penalty > 0 ? `
+      <div class="breakdown-item">
+        <div class="b-label">Intento nº${data.attempt_number}</div>
+        <div class="b-value b-neg">-${data.attempt_penalty}</div>
+      </div>` : ''}
+      <div class="breakdown-item">
+        <div class="b-label">Dificultad</div>
+        <div class="b-value b-accent">×${data.difficulty_mult}</div>
+      </div>
+    </div>
+
+    ${win && currentAttempt < 3 ? '' : ''}
+
+    <div class="btn-row" style="margin-bottom:12px">
+      ${!win && currentAttempt < 3 ? `
+        <button class="btn btn-primary" onclick="tryAgain()">
+          📸 Intento ${currentAttempt + 1}/3
+        </button>` : ''}
+      <button class="btn btn-secondary" onclick="shareResult()">
+        📤 Compartir
+      </button>
+      <button class="btn btn-secondary" onclick="switchTab('feed')">
+        🌐 Feed
+      </button>
+    </div>
+  `;
+
+  // Actualizar dot de intentos
+  document.getElementById(`dot-${currentAttempt}`).classList.remove('current');
+  document.getElementById(`dot-${currentAttempt}`).classList.add(win ? 'used' : 'failed');
+}
+
+function tryAgain() {
+  if (currentAttempt >= 3) return;
+  currentAttempt++;
+  document.getElementById('score-section').classList.add('hidden');
+  document.getElementById(`dot-${currentAttempt}`).classList.add('current');
+
+  // Resetear estado de botones y previsualización para el nuevo intento
+  capturedBlob = null;
+  document.getElementById('btn-row-capture').classList.remove('hidden');
+  document.getElementById('btn-row-preview').classList.add('hidden');
+  const btnSubmit = document.getElementById('btn-submit');
+  btnSubmit.disabled = false;
+  btnSubmit.textContent = '✓ Usar esta';
+
+  startCamera();
+  if (!timerInterval) startTimerDisplay();
+}
+
+// ── Friends ───────────────────────────────────────────────────────────────
+
+let searchTimeout = null;
+
+async function loadFriends() {
+  const container = document.getElementById('friends-list');
+  if (!authToken || isGuest) {
+    container.innerHTML = `<div class="empty-state">
+      Regístrate para añadir amigos y ver su actividad diaria 👥<br><br>
+      <button class="btn btn-primary btn-sm" style="width:auto;margin:0 auto"
+        onclick="document.getElementById('modal-auth').style.display='flex';showAuthTab('register')">
+        Crear cuenta gratis →
+      </button>
+    </div>`;
+    document.getElementById('friend-requests-section').classList.add('hidden');
+    return;
+  }
+  try {
+    const res  = await fetch(`${API}/friends`, { headers: authHeaders() });
+    const data = await res.json();
+
+    // Solicitudes recibidas
+    const reqSection = document.getElementById('friend-requests-section');
+    const reqList    = document.getElementById('friend-requests-list');
+    if (data.pending_received.length > 0) {
+      reqSection.classList.remove('hidden');
+      reqList.innerHTML = data.pending_received.map(r => `
+        <div class="friend-row">
+          <div class="friend-avatar">${r.display_name[0].toUpperCase()}</div>
+          <div class="friend-info">
+            <div class="friend-name">${r.display_name}</div>
+            <div class="friend-meta">@${r.username} · quiere ser tu amigo</div>
+          </div>
+          <div class="friend-actions">
+            <button class="btn-icon btn-accept"  onclick="acceptFriend('${r.username}')">✓</button>
+            <button class="btn-icon btn-decline" onclick="removeFriend('${r.username}')">✕</button>
+          </div>
+        </div>`).join('');
+    } else {
+      reqSection.classList.add('hidden');
+    }
+
+    // Amigos aceptados
+    if (!data.friends.length) {
+      container.innerHTML = '<div class="empty-state">Aún no tienes amigos.<br>Búscalos arriba 👆</div>';
+      return;
+    }
+    container.innerHTML = data.friends.map(f => `
+      <div class="friend-row">
+        <div class="friend-avatar">${f.display_name[0].toUpperCase()}</div>
+        <div class="friend-info">
+          <div class="friend-name">${f.display_name}</div>
+          <div class="friend-meta">@${f.username} · 🔥${f.current_streak} · ${f.total_score.toLocaleString()} pts</div>
+        </div>
+        <div class="friend-actions">
+          <button class="btn-icon btn-profile" onclick="loadHistory('${f.username}')">📅</button>
+          <button class="btn-icon btn-decline" onclick="removeFriend('${f.username}')">✕</button>
+        </div>
+      </div>`).join('');
+
+  } catch(e) {
+    container.innerHTML = '<div class="empty-state">⚠️ Sin conexión con la API</div>';
+  }
+}
+
+function searchUsers(query) {
+  clearTimeout(searchTimeout);
+  const results = document.getElementById('friend-search-results');
+  if (query.length < 3) { results.innerHTML = ''; return; }
+
+  searchTimeout = setTimeout(async () => {
+    if (!authToken || isGuest) { results.innerHTML = '<div style="color:var(--muted);font-size:13px">Regístrate para buscar y añadir amigos</div>'; return; }
+    try {
+      const res  = await fetch(`${API}/friends/search?q=${encodeURIComponent(query)}`, { headers: authHeaders() });
+      const data = await res.json();
+      if (!data.length) { results.innerHTML = '<div style="color:var(--muted);font-size:13px">Sin resultados</div>'; return; }
+
+      results.innerHTML = data.map(u => {
+        let actionBtn = '';
+        if      (u.status === 'accepted')          actionBtn = `<button class="btn-icon btn-pending" disabled>✓ Amigos</button>`;
+        else if (u.status === 'pending_sent')       actionBtn = `<button class="btn-icon btn-pending" disabled>⏳ Enviado</button>`;
+        else if (u.status === 'pending_received')   actionBtn = `<button class="btn-icon btn-accept" onclick="acceptFriend('${u.username}')">✓ Aceptar</button>`;
+        else                                        actionBtn = `<button class="btn-icon btn-add" onclick="addFriend('${u.username}',this)">+ Añadir</button>`;
+        return `
+          <div class="friend-row" style="margin-bottom:6px">
+            <div class="friend-avatar">${u.display_name[0].toUpperCase()}</div>
+            <div class="friend-info">
+              <div class="friend-name">${u.display_name}</div>
+              <div class="friend-meta">@${u.username} · ${u.total_score.toLocaleString()} pts</div>
+            </div>
+            <div class="friend-actions">${actionBtn}</div>
+          </div>`;
+      }).join('');
+    } catch(e) { results.innerHTML = ''; }
+  }, 400);
+}
+
+async function addFriend(uname, btn) {
+  if (!requireRegistered('añadir amigos')) return;
+  btn.disabled = true; btn.textContent = '⏳';
+  try {
+    const res = await fetch(`${API}/friends/${uname}`, { method: 'POST', headers: authHeaders() });
+    const data = await res.json();
+    if (res.ok) { btn.textContent = '✓ Enviado'; btn.className = 'btn-icon btn-pending'; }
+    else        { alert(data.detail); btn.disabled = false; btn.textContent = '+ Añadir'; }
+  } catch(e)  { btn.disabled = false; btn.textContent = '+ Añadir'; }
+}
+
+async function acceptFriend(uname) {
+  if (!requireRegistered('aceptar solicitudes')) return;
+  try {
+    const res = await fetch(`${API}/friends/${uname}/accept`, { method: 'POST', headers: authHeaders() });
+    if (res.ok) loadFriends();
+    else { const d = await res.json(); alert(d.detail); }
+  } catch(e) {}
+}
+
+async function removeFriend(uname) {
+  if (!requireRegistered('gestionar amigos')) return;
+  if (!confirm(`¿Eliminar a @${uname}?`)) return;
+  try {
+    await fetch(`${API}/friends/${uname}`, { method: 'DELETE', headers: authHeaders() });
+    loadFriends();
+  } catch(e) {}
+}
+
+// ── History ───────────────────────────────────────────────────────────────
+
+async function loadHistory(uname) {
+  document.getElementById('history-section').classList.remove('hidden');
+  document.getElementById('history-title').textContent =
+    uname === username ? 'Mi historial' : `Historial de @${uname}`;
+  document.getElementById('history-calendar').innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+  document.getElementById('history-entries').innerHTML  = '';
+
+  try {
+    const res  = await fetch(`${API}/user/${uname}/history`, { headers: authHeaders() });
+    const data = await res.json();
+
+    // Calendario (últimos 30 días)
+    const calEl  = document.getElementById('history-calendar');
+    const today  = new Date();
+    const calDays = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(today); d.setDate(today.getDate() - i);
+      calDays.push(d.toISOString().split('T')[0]);
+    }
+    const calMap = {};
+    (data.calendar || []).forEach(c => { calMap[c.date] = c; });
+
+    calEl.innerHTML = calDays.map(d => {
+      const entry = calMap[d];
+      const cls   = entry ? (entry.correct ? 'correct' : 'failed') : '';
+      const isToday = d === today.toISOString().split('T')[0] ? 'today' : '';
+      const title = entry ? `${d}: ${entry.score} pts` : d;
+      return `<div class="cal-day ${cls} ${isToday}" title="${title}"></div>`;
+    }).join('');
+
+    // Entradas
+    const entriesEl = document.getElementById('history-entries');
+    if (!data.entries.length) {
+      entriesEl.innerHTML = '<div class="empty-state">Sin entradas todavía</div>';
+      return;
+    }
+    entriesEl.innerHTML = data.entries.map(e => `
+      <div class="history-entry">
+        <div class="he-emoji">${e.object_emoji}</div>
+        <div class="he-info">
+          <div class="he-date">${formatDate(e.date)} · ${e.weekday.slice(0,3)}</div>
+          <div class="he-name">${e.object_name}</div>
+          <div class="he-tags">
+            <span class="tag ${e.correct ? 'correct' : 'incorrect'}">${e.correct ? '✅' : '❌'}</span>
+            <span class="tag">${e.speed_label}</span>
+            <span class="tag">${e.framing_label}</span>
+            ${e.correct ? `<span class="tag">🎯 ${e.confidence_pct}%</span>` : ''}
+            <span class="tag diff-${e.difficulty}" style="border-radius:20px">${e.difficulty}</span>
+          </div>
+        </div>
+        <div class="he-score ${e.correct ? 'win' : 'lose'}">${e.total_score.toLocaleString()}</div>
+      </div>`).join('');
+
+    // Scroll hacia el historial
+    document.getElementById('history-section').scrollIntoView({ behavior: 'smooth' });
+
+  } catch(e) {
+    document.getElementById('history-calendar').innerHTML = '<div class="empty-state">⚠️ Error cargando historial</div>';
+  }
+}
+
+function closeHistory() {
+  document.getElementById('history-section').classList.add('hidden');
+}
+
+// ── Feed ──────────────────────────────────────────────────────────────────
+let feedFriendsOnly = false;
+
+function toggleFriendsFeed() {
+  if (!authToken) { alert('Inicia sesión para filtrar por amigos'); return; }
+  feedFriendsOnly = !feedFriendsOnly;
+  const toggle = document.getElementById('friends-toggle');
+  const knob   = document.getElementById('friends-toggle-knob');
+  toggle.style.background = feedFriendsOnly ? 'var(--accent)' : 'var(--border)';
+  knob.style.left         = feedFriendsOnly ? '19px' : '3px';
+  loadFeed();
+}
+
+async function loadFeed() {
+  const container = document.getElementById('feed-container');
+  container.innerHTML = '<div class="loader"><div class="spinner"></div><p>Cargando…</p></div>';
+  try {
+    const url = feedFriendsOnly ? `${API}/feed?friends_only=true` : `${API}/feed`;
+    const res  = await fetch(url, { headers: authHeaders() });
+    const data = await res.json();
+
+    if (!data.entries.length) {
+      const msg = feedFriendsOnly
+        ? '👥 Ningún amigo ha jugado hoy todavía'
+        : '😶 Nadie ha jugado hoy todavía.<br>¡Sé el primero!';
+      container.innerHTML = `<div class="empty-state">${msg}</div>`;
+      return;
+    }
+
+    feedEntries = {};
+    data.entries.forEach(e => { feedEntries[e.submission_id] = e; });
+
+    container.innerHTML = data.entries.map(e => `
+      <div class="feed-entry" id="fe-${e.submission_id}">
+        <div class="feed-header">
+          <div class="feed-avatar">${e.display_name[0].toUpperCase()}</div>
+          <div class="feed-meta">
+            <div class="feed-name">${e.display_name}</div>
+            <div class="feed-time">${timeAgo(e.submitted_at)}</div>
+          </div>
+          <div class="feed-score ${e.correct ? 'win' : 'lose'}">${e.total_score.toLocaleString()} pts</div>
+        </div>
+        <div class="feed-image-wrap">
+          ${e.annotated_image_b64
+            ? `<img src="data:image/jpeg;base64,${e.annotated_image_b64}" alt="snap" />`
+            : `<div class="feed-img-placeholder">${e.object_emoji}</div>`}
+        </div>
+        <div class="feed-tags">
+          <span class="tag ${e.correct ? 'correct' : 'incorrect'}">${e.correct ? '✅ Detectado' : '❌ Fallido'}</span>
+          <span class="tag">${e.speed_label}</span>
+          <span class="tag">${e.framing_label}</span>
+          ${e.correct ? `<span class="tag">🎯 ${e.confidence_pct}% conf.</span>` : ''}
+        </div>
+        <div class="feed-actions">
+          <button class="btn-like ${e.user_liked ? 'liked' : ''}"
+            onclick="toggleLike(${e.submission_id}, this)"
+            id="like-btn-${e.submission_id}">
+            ❤️ <span id="like-count-${e.submission_id}">${e.like_count}</span>
+          </button>
+          <button class="btn-comments-toggle" onclick="toggleComments(${e.submission_id})">
+            💬 <span id="cmt-count-${e.submission_id}">${e.comment_count}</span>
+          </button>
+          <button class="btn-comments-toggle" onclick="shareFeedEntry(${e.submission_id})"
+            style="margin-left:4px" title="Compartir">
+            📤
+          </button>
+        </div>
+        <div class="comments-section" id="comments-${e.submission_id}">
+          <div id="comments-list-${e.submission_id}"></div>
+          ${authToken && !isGuest ? `
+          <div class="comment-input-row">
+            <input type="text" placeholder="Añade un comentario…" maxlength="280"
+              id="cmt-input-${e.submission_id}"
+              onkeydown="if(event.key==='Enter') postComment(${e.submission_id})" />
+            <button onclick="postComment(${e.submission_id})">→</button>
+          </div>` : `<div style="font-size:12px;color:var(--muted);margin-top:8px">${isGuest ? 'Regístrate para comentar' : 'Inicia sesión para comentar'}</div>`}
+        </div>
+      </div>
+    `).join('');
+
+  } catch(e) {
+    container.innerHTML = '<div class="empty-state">⚠️ Sin conexión con la API</div>';
+  }
+}
+
+// ── Leaderboard ───────────────────────────────────────────────────────────
+async function loadLeaderboard() {
+  const container = document.getElementById('lb-container');
+  container.innerHTML = '<div class="loader"><div class="spinner"></div><p>Cargando…</p></div>';
+  try {
+    const res  = await fetch(`${API}/leaderboard?limit=20`);
+    const data = await res.json();
+
+    if (!data.entries.length) {
+      container.innerHTML = '<div class="empty-state">Nadie en el ranking todavía</div>';
+      return;
+    }
+
+    const rankClass = r => r === 1 ? 'gold' : r === 2 ? 'silver' : r === 3 ? 'bronze' : '';
+    const rankEmoji = r => r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : r;
+
+    container.innerHTML = data.entries.map(e => `
+      <div class="lb-row">
+        <div class="lb-rank ${rankClass(e.rank)}">${rankEmoji(e.rank)}</div>
+        <div class="lb-avatar">${e.display_name[0].toUpperCase()}</div>
+        <div class="lb-info">
+          <div class="lb-name">${e.display_name} ${e.username === username ? '<span style="color:var(--accent);font-size:11px">(tú)</span>' : ''}</div>
+          <div class="lb-streak">🔥 ${e.current_streak} días de racha</div>
+        </div>
+        <div class="lb-score">${e.total_score.toLocaleString()}</div>
+      </div>
+    `).join('');
+
+  } catch(e) {
+    container.innerHTML = '<div class="empty-state">⚠️ Sin conexión con la API</div>';
+  }
+}
+
+// ── User stats ────────────────────────────────────────────────────────────
+async function loadUserStats() {
+  try {
+    // Si hay token, usar /me para datos más completos
+    const endpoint = authToken ? `${API}/me` : `${API}/user/${username}`;
+    const res  = await fetch(endpoint, { headers: authHeaders() });
+    if (!res.ok) return;
+    const data = await res.json();
+    document.getElementById('streak-count').textContent = data.current_streak;
+  } catch(e) { /* sin stats */ }
+}
+
+// ── Likes ─────────────────────────────────────────────────────────────────
+async function toggleLike(sid, btn) {
+  if (!requireRegistered('dar likes')) return;
+  const liked = btn.classList.contains('liked');
+  const method = liked ? 'DELETE' : 'POST';
+  try {
+    const res  = await fetch(`${API}/submission/${sid}/like`, { method, headers: authHeaders() });
+    const data = await res.json();
+    if (res.ok) {
+      btn.classList.toggle('liked', !liked);
+      document.getElementById(`like-count-${sid}`).textContent = data.likes;
+    }
+  } catch(e) {}
+}
+
+// ── Comentarios ───────────────────────────────────────────────────────────
+async function toggleComments(sid) {
+  const section = document.getElementById(`comments-${sid}`);
+  const isOpen  = section.classList.contains('open');
+  if (isOpen) { section.classList.remove('open'); return; }
+  section.classList.add('open');
+  await loadComments(sid);
+}
+
+async function loadComments(sid) {
+  const list = document.getElementById(`comments-list-${sid}`);
+  try {
+    const res  = await fetch(`${API}/submission/${sid}/comments`, { headers: authHeaders() });
+    const data = await res.json();
+    if (!data.length) {
+      list.innerHTML = '<div style="font-size:12px;color:var(--muted);margin-top:4px">Sin comentarios todavía</div>';
+      return;
+    }
+    list.innerHTML = data.map(c => `
+      <div class="comment-item">
+        <div class="comment-avatar">${c.display_name[0].toUpperCase()}</div>
+        <div class="comment-bubble">
+          <div class="comment-author">${c.display_name}</div>
+          <div class="comment-text">${escapeHtml(c.text)}</div>
+        </div>
+      </div>
+    `).join('');
+    document.getElementById(`cmt-count-${sid}`).textContent = data.length;
+  } catch(e) {}
+}
+
+async function postComment(sid) {
+  const input = document.getElementById(`cmt-input-${sid}`);
+  const text  = input.value.trim();
+  if (!text) return;
+  if (!requireRegistered('comentar')) return;
+  input.value = '';
+  try {
+    const res = await fetch(`${API}/submission/${sid}/comments`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    if (res.ok) await loadComments(sid);
+  } catch(e) {}
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+          .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── Perfil ────────────────────────────────────────────────────────────────
+async function openProfile() {
+  document.getElementById('modal-profile').classList.add('open');
+  document.getElementById('profile-avatar-big').textContent = (displayName || username || '?')[0].toUpperCase();
+  document.getElementById('profile-display-input').value = displayName || '';
+  document.getElementById('profile-username-lbl').textContent = '@' + username;
+  document.getElementById('profile-history-list').innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+  try {
+    const res  = await fetch(`${API}/user/${username}/history`, { headers: authHeaders() });
+    const data = await res.json();
+    document.getElementById('pstat-score').textContent  = (data.total_score || 0).toLocaleString();
+    document.getElementById('pstat-streak').textContent = data.current_streak || 0;
+    document.getElementById('pstat-max').textContent    = data.max_streak || 0;
+    if (!data.entries.length) {
+      document.getElementById('profile-history-list').innerHTML =
+        '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">Todavía no has jugado ningún día</div>';
+      return;
+    }
+    document.getElementById('profile-history-list').innerHTML = data.entries.map(e => `
+      <div class="history-row">
+        <div class="history-emoji">${e.object_emoji}</div>
+        <div class="history-info">
+          <div class="history-name">${e.object_name}</div>
+          <div class="history-date">${formatDate(e.date)} · intento ${e.attempt_number}</div>
+        </div>
+        <div class="history-score ${e.correct ? 'win' : 'lose'}">
+          ${e.correct ? '+' : ''}${e.total_score}
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    document.getElementById('profile-history-list').innerHTML = '<div style="color:var(--muted);font-size:13px">Error al cargar el historial</div>';
+  }
+}
+
+function closeProfile() {
+  document.getElementById('modal-profile').classList.remove('open');
+}
+
+async function saveDisplayName() {
+  const input = document.getElementById('profile-display-input');
+  const newName = input.value.trim();
+  if (!newName || newName === displayName || !authToken) return;
+  try {
+    const res = await fetch(`${API}/me/profile?display_name=${encodeURIComponent(newName)}`, {
+      method: 'PATCH', headers: authHeaders(),
+    });
+    if (res.ok) {
+      displayName = newName;
+      localStorage.setItem('snapit_displayname', displayName);
+      document.getElementById('profile-avatar-big').textContent = displayName[0].toUpperCase();
+      document.getElementById('menu-display-name').textContent  = displayName;
+    }
+  } catch(e) {}
+}
+
+// ── Notifications ────────────────────────────────────────────────────────
+// La hora diaria se genera con un hash del día + salt secreto.
+// El usuario NUNCA ve la hora exacta — solo sabe que llegará en algún momento del día.
+
+const _NOTIF_SALT  = 'snapit_daily_v2';
+const _NOTIF_KEY   = 'snapit_notif_scheduled';
+const _NOTIF_FIRED = 'snapit_notif_fired_date';
+
+async function _getDailyNotifMinutes() {
+  // Hash determinista de la fecha → minutos desde medianoche en rango 8:00–21:59
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const encoded = new TextEncoder().encode(dateStr + _NOTIF_SALT);
+  const buf     = await crypto.subtle.digest('SHA-256', encoded);
+  const arr     = new Uint8Array(buf);
+  const val     = (arr[0] << 8) | arr[1]; // 0–65535
+  return 8 * 60 + (val % (14 * 60));      // 8:00–21:59
+}
+
+async function _scheduleNotifToday() {
+  const minsFromMidnight = await _getDailyNotifMinutes();
+  const now   = new Date();
+  const fire  = new Date();
+  fire.setHours(Math.floor(minsFromMidnight / 60), minsFromMidnight % 60, 0, 0);
+
+  // Si ya pasó la hora de hoy, programar para mañana
+  if (fire <= now) fire.setDate(fire.getDate() + 1);
+
+  const msUntil = fire - now;
+  localStorage.setItem(_NOTIF_KEY, fire.toISOString());
+  setTimeout(_fireNotif, msUntil);
+}
+
+function _fireNotif() {
+  const today = new Date().toISOString().slice(0, 10);
+  if (localStorage.getItem(_NOTIF_FIRED) === today) return; // ya notificado hoy
+  localStorage.setItem(_NOTIF_FIRED, today);
+  notifTime = Date.now();
+  localStorage.setItem('snapit_notif_epoch', notifTime);
+
+  const body = challenge
+    ? `El objeto de hoy es ${challenge.object_emoji} ${challenge.object_name}. ¡A por él!`
+    : '¡Es tu momento del día para jugar!';
+
+  new Notification('📸 SnapIT — ¡Toca jugar!', {
+    body,
+    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📸</text></svg>',
+    tag: 'snapit-daily', requireInteraction: true,
+  }).onclick = () => { window.focus(); };
+
+  startTimerDisplay();
+  // Reprogramar para mañana
+  _scheduleNotifToday();
+}
+
+async function setupNotifications() {
+  const btn = document.getElementById('btn-notif');
+  if (!btn) return;
+
+  if (!('Notification' in window)) {
+    btn.textContent = '🔕'; btn.style.color = 'var(--muted)'; return;
+  }
+
+  let perm = Notification.permission;
+  if (perm === 'default') perm = await Notification.requestPermission();
+
+  if (perm === 'granted') {
+    btn.textContent  = '🔔';
+    btn.style.color  = 'var(--green)';
+    btn.title        = 'Notificaciones activadas — te avisaremos a una hora sorpresa';
+    await _scheduleNotifToday();
+  } else {
+    btn.textContent = '🔕'; btn.style.color = 'var(--muted)';
+    btn.title       = 'Notificaciones desactivadas';
+  }
+}
+
+// Reactivar timer pendiente si la página se recarga y ya había permiso
+async function _resumeNotifIfGranted() {
+  if (Notification.permission !== 'granted') return;
+  document.getElementById('btn-notif').textContent = '🔔';
+  document.getElementById('btn-notif').style.color = 'var(--green)';
+  document.getElementById('btn-notif').title = 'Notificaciones activadas — te avisaremos a una hora sorpresa';
+  const stored = localStorage.getItem(_NOTIF_KEY);
+  if (stored && new Date(stored) > new Date()) {
+    const msUntil = new Date(stored) - Date.now();
+    setTimeout(_fireNotif, msUntil);
+  } else {
+    await _scheduleNotifToday();
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function diffLabel(d) {
+  return d === 'easy' ? '⭐ Fácil' : d === 'medium' ? '⭐⭐ Medio' : '⭐⭐⭐ Difícil';
+}
+
+function formatDate(iso) {
+  return new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+}
+
+function timeAgo(isoStr) {
+  const diff = Math.floor((Date.now() - new Date(isoStr)) / 1000);
+  if (diff < 60)   return 'Hace un momento';
+  if (diff < 3600) return `Hace ${Math.floor(diff/60)} min`;
+  return `Hace ${Math.floor(diff/3600)}h`;
+}
+
+// ── Guard: acciones sociales solo para cuentas registradas ───────────────
+function requireRegistered(action = 'realizar esta acción') {
+  if (authToken && !isGuest) return true;
+  const msg = isGuest
+    ? `Regístrate para ${action}`
+    : `Inicia sesión para ${action}`;
+  showToast(msg);
+  setTimeout(() => {
+    document.getElementById('modal-auth').style.display = 'flex';
+    showAuthTab('register');
+  }, 700);
+  return false;
+}
+
+// ── Compartir publicación del feed ────────────────────────────────────────
+async function shareFeedEntry(sid) {
+  const e = feedEntries[sid];
+  if (!e) return;
+  const text =
+`📸 SnapIT — ${formatDate(new Date().toISOString().split('T')[0])}
+${e.display_name} ${e.correct ? 'detectó' : 'intentó'} ${e.object_emoji} ${e.object_name}
+${e.correct ? '🎯' : '❌'} ${e.total_score.toLocaleString()} pts · ${e.speed_label}
+¡Juega en snapit.app!`;
+  if (navigator.share) {
+    try { await navigator.share({ text }); } catch(_) {}
+  } else {
+    try { await navigator.clipboard.writeText(text); showToast('¡Copiado!'); } catch(_) {}
+  }
+}
+
+// ── Compartir resultado ───────────────────────────────────────────────────
+async function shareResult() {
+  if (!lastShareText) return;
+  if (navigator.share) {
+    try { await navigator.share({ text: lastShareText }); } catch(e) { /* cancelado */ }
+  } else {
+    try {
+      await navigator.clipboard.writeText(lastShareText);
+      showToast('¡Copiado al portapapeles!');
+    } catch(e) {
+      showToast('No se pudo copiar');
+    }
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('visible');
+  setTimeout(() => t.classList.remove('visible'), 2500);
+}
+
+// ── Service Worker ────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
