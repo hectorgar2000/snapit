@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "SnapIT",
+    "slug": "snapit",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0a0f"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.snapit.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "SnapIT necesita la cámara para fotografiar el objeto del reto diario.",
+        "NSNotificationsUsageDescription": "SnapIT te avisará cuando llegue el momento de jugar."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0a0f"
+      },
+      "package": "com.snapit.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "SnapIT necesita la cámara para fotografiar el objeto del reto."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#7c6dff"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "270fef92-cc98-488b-a74b-9bef165acaa1"
+      }
+    }
+  }
+}
