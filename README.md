@@ -12,6 +12,7 @@ Cada día hay un objeto diferente. Lo fotografías, YOLO-World lo detecta y te d
 ![Python](https://img.shields.io/badge/Python-3.11+-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-green)
 ![YOLO](https://img.shields.io/badge/YOLO--World-yolov8s--worldv2-purple)
+![Expo](https://img.shields.io/badge/Expo-SDK%2054-black)
 
 ---
 
@@ -28,6 +29,7 @@ Cada día hay un objeto diferente. Lo fotografías, YOLO-World lo detecta y te d
 - **Ranking global**
 - **Notificaciones push** a una hora sorpresa cada día (hash criptográfico del día)
 - **PWA instalable** — funciona como app en Android/iOS desde el navegador
+- **App móvil nativa** — React Native/Expo para Android e iOS
 
 ---
 
@@ -36,7 +38,8 @@ Cada día hay un objeto diferente. Lo fotografías, YOLO-World lo detecta y te d
 | Capa | Tecnología |
 |---|---|
 | Backend | FastAPI + SQLModel + SQLite / PostgreSQL |
-| Frontend | SPA Vanilla JS servida desde FastAPI |
+| Frontend web | SPA Vanilla JS servida desde FastAPI |
+| App móvil | React Native + Expo SDK 54 |
 | ML | YOLO-World `yolov8s-worldv2.pt` (Ultralytics) |
 | Auth | PyJWT + bcrypt directo (compatible con Python 3.13) |
 | Deploy | Docker + Railway |
@@ -61,6 +64,17 @@ snapit/
 │   ├── index.html     # SPA completa
 │   ├── manifest.json  # PWA manifest
 │   └── sw.js          # Service worker (offline-first)
+├── mobile/            # App React Native / Expo
+│   ├── App.tsx        # Navegación principal (bottom tabs)
+│   ├── app.json       # Config Expo + permisos
+│   ├── eas.json       # Perfiles de build (APK / AAB)
+│   └── src/
+│       ├── screens/   # AuthScreen, PlayScreen, FeedScreen, FriendsScreen, LeaderboardScreen
+│       ├── api.ts     # Cliente HTTP (todas las llamadas al backend)
+│       ├── auth.ts    # AsyncStorage: sesión y estado local
+│       ├── config.ts  # URL de la API
+│       ├── theme.ts   # Colores y estilos comunes
+│       └── types.ts   # Interfaces TypeScript
 ├── Dockerfile
 ├── railway.toml
 └── run.py             # Lanzador local
@@ -69,6 +83,8 @@ snapit/
 ---
 
 ## Arrancar en local
+
+### Backend + Web
 
 ```bash
 # 1. Clonar e instalar dependencias
@@ -82,6 +98,48 @@ python run.py
 ```
 
 El modelo YOLO-World (~50 MB) se descarga automáticamente en el primer arranque.
+
+### App móvil
+
+```bash
+cd mobile
+npm install
+npx expo start
+```
+
+Escanea el QR con **Expo Go** (iOS o Android). Asegúrate de que `src/config.ts` apunta a tu servidor:
+
+```typescript
+// Dispositivo físico (misma red WiFi)
+export const API_URL = 'http://192.168.X.X:8000';
+
+// Producción
+export const API_URL = 'https://tu-app.railway.app';
+```
+
+---
+
+## Build de la app móvil
+
+Requiere cuenta gratuita en [expo.dev](https://expo.dev) y la CLI de EAS:
+
+```bash
+npm install -g eas-cli
+eas login
+```
+
+| Perfil | Formato | Uso |
+|---|---|---|
+| `preview` | `.apk` | Instalar directamente en Android |
+| `production` | `.aab` | Subir a Google Play Store |
+
+```bash
+# APK para instalar directamente
+eas build --platform android --profile preview
+
+# AAB para Google Play
+eas build --platform android --profile production
+```
 
 ---
 
@@ -104,7 +162,7 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 ## Deploy en Railway
 
-1. Haz fork / sube el repo a GitHub
+1. Sube el repo a GitHub
 2. En [railway.app](https://railway.app) → `New Project` → `Deploy from GitHub repo`
 3. Railway detecta el `Dockerfile` automáticamente
 4. Añade un addon **PostgreSQL**: `New` → `Database` → `PostgreSQL`  
