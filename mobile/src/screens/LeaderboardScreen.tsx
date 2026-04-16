@@ -1,16 +1,16 @@
 import React, { useState, useCallback } from 'react';
-import {
-  View, Text, FlatList, StyleSheet, Alert,
-} from 'react-native';
-import { LeaderboardSkeleton } from '../components/Skeleton';
+import { View, Text, FlatList, StyleSheet, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { C, S } from '../theme';
 import { apiLeaderboard } from '../api';
 import { LeaderboardEntry, AuthSession } from '../types';
+import { LeaderboardSkeleton } from '../components/Skeleton';
 
 interface Props { session: AuthSession }
 
 export default function LeaderboardScreen({ session }: Props) {
+  const { t } = useTranslation();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -22,7 +22,7 @@ export default function LeaderboardScreen({ session }: Props) {
       const data = await apiLeaderboard(20);
       setEntries(data.entries);
     } catch {
-      Alert.alert('Error', 'No se pudo cargar el ranking.');
+      Alert.alert(t('common.error'), t('leaderboard.loadError'));
     } finally {
       setLoading(false);
     }
@@ -33,7 +33,7 @@ export default function LeaderboardScreen({ session }: Props) {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <Text style={[S.sectionTitle, { padding: 16, paddingBottom: 8 }]}>Ranking global</Text>
+      <Text style={[S.sectionTitle, { padding: 16, paddingBottom: 8 }]}>{t('leaderboard.title')}</Text>
       {loading ? (
         <LeaderboardSkeleton />
       ) : (
@@ -41,7 +41,11 @@ export default function LeaderboardScreen({ session }: Props) {
           data={entries}
           keyExtractor={e => e.username}
           contentContainerStyle={styles.list}
-          ListEmptyComponent={<Text style={[S.muted, { textAlign: 'center', marginTop: 40 }]}>Nadie en el ranking todavía</Text>}
+          ListEmptyComponent={
+            <Text style={[S.muted, { textAlign: 'center', marginTop: 40 }]}>
+              {t('leaderboard.empty')}
+            </Text>
+          }
           renderItem={({ item: e }) => (
             <View style={[styles.row, e.username === session.username && styles.rowSelf]}>
               <Text style={[styles.rank, { color: rankColor(e.rank) }]}>{rankEmoji(e.rank)}</Text>
@@ -52,10 +56,10 @@ export default function LeaderboardScreen({ session }: Props) {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <Text style={styles.name}>{e.display_name}</Text>
                   {e.username === session.username && (
-                    <Text style={{ fontSize: 11, color: C.accent }}>(tú)</Text>
+                    <Text style={{ fontSize: 11, color: C.accent }}>{t('leaderboard.you')}</Text>
                   )}
                 </View>
-                <Text style={S.muted}>🔥 {e.current_streak} días de racha</Text>
+                <Text style={S.muted}>{t('leaderboard.streak', { n: e.current_streak })}</Text>
               </View>
               <Text style={styles.score}>{e.total_score.toLocaleString()}</Text>
             </View>

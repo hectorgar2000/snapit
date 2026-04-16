@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import './src/i18n'; // Inicializar i18n antes que cualquier pantalla
 
 import { AuthSession } from './src/types';
 import { loadSession } from './src/auth';

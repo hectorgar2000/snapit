@@ -4,6 +4,7 @@ import {
   TextInput, Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { C, S } from '../theme';
 import { apiMe, apiUpdateProfile, apiChangePassword, apiDeleteAccount, apiHistory } from '../api';
 import { clearSession } from '../auth';
@@ -16,6 +17,8 @@ interface Props {
 }
 
 export default function ProfileScreen({ session, onLogout }: Props) {
+  const { t } = useTranslation();
+
   const [profile,      setProfile]      = useState<any>(null);
   const [history,      setHistory]      = useState<any[]>([]);
   const [loading,      setLoading]      = useState(true);
@@ -39,7 +42,7 @@ export default function ProfileScreen({ session, onLogout }: Props) {
       setProfile(me);
       setHistory(hist.entries?.slice(0, 7) ?? []);
     } catch {
-      Alert.alert('Error', 'No se pudo cargar el perfil.');
+      Alert.alert(t('common.error'), t('profile.loadError'));
     } finally {
       setLoading(false);
     }
@@ -54,7 +57,7 @@ export default function ProfileScreen({ session, onLogout }: Props) {
       setEditingName(false);
       setNewName('');
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      Alert.alert(t('common.error'), e.message);
     } finally {
       setSavingName(false);
     }
@@ -63,27 +66,27 @@ export default function ProfileScreen({ session, onLogout }: Props) {
   async function savePassword() {
     if (!oldPass || !newPass) return;
     if (newPass.length < 6) {
-      Alert.alert('Error', 'La nueva contraseña debe tener al menos 6 caracteres');
+      Alert.alert(t('common.error'), t('profile.passwordTooShort'));
       return;
     }
     setSavingPass(true);
     try {
       await apiChangePassword(oldPass, newPass, session.token);
-      Alert.alert('✅ Contraseña cambiada', 'Tu contraseña se ha actualizado correctamente.');
+      Alert.alert(t('profile.passwordUpdated'), t('profile.passwordUpdatedBody'));
       setShowPassword(false);
       setOldPass('');
       setNewPass('');
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      Alert.alert(t('common.error'), e.message);
     } finally {
       setSavingPass(false);
     }
   }
 
   function confirmLogout() {
-    Alert.alert('Cerrar sesión', '¿Seguro que quieres cerrar sesión?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Cerrar sesión', style: 'destructive', onPress: async () => {
+    Alert.alert(t('profile.logoutTitle'), t('profile.logoutBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('profile.logout'), style: 'destructive', onPress: async () => {
         await clearSession();
         onLogout();
       }},
@@ -92,20 +95,20 @@ export default function ProfileScreen({ session, onLogout }: Props) {
 
   function confirmDelete() {
     Alert.alert(
-      '⚠️ Eliminar cuenta',
-      'Esta acción es permanente. Se borrarán todos tus datos, puntuaciones e historial.',
+      t('profile.deleteTitle'),
+      t('profile.deleteBody'),
       [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: () => {
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.delete'), style: 'destructive', onPress: () => {
           if (session.isGuest) {
             deleteAccount('');
           } else {
             Alert.prompt(
-              'Confirmar contraseña',
-              'Introduce tu contraseña para confirmar la eliminación',
+              t('profile.confirmPassword'),
+              t('profile.confirmPasswordBody'),
               [
-                { text: 'Cancelar', style: 'cancel' },
-                { text: 'Eliminar', style: 'destructive', onPress: (pwd?: string) => deleteAccount(pwd ?? '') },
+                { text: t('common.cancel'), style: 'cancel' },
+                { text: t('common.delete'), style: 'destructive', onPress: (pwd?: string) => deleteAccount(pwd ?? '') },
               ],
               'secure-text',
             );
@@ -121,7 +124,7 @@ export default function ProfileScreen({ session, onLogout }: Props) {
       await clearSession();
       onLogout();
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      Alert.alert(t('common.error'), e.message);
     }
   }
 
@@ -139,7 +142,7 @@ export default function ProfileScreen({ session, onLogout }: Props) {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ padding: 16 }}>
 
-      {/* ── Avatar + nombre ─────────────────────────────────────────── */}
+      {/* ── Avatar + name ───────────────────────────────────────────── */}
       <View style={styles.header}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{displayName[0].toUpperCase()}</Text>
@@ -151,7 +154,7 @@ export default function ProfileScreen({ session, onLogout }: Props) {
                 style={[S.input, { flex: 1, marginBottom: 0 }]}
                 value={newName}
                 onChangeText={setNewName}
-                placeholder="Nuevo nombre"
+                placeholder={t('profile.newName')}
                 placeholderTextColor={C.muted}
                 maxLength={30}
                 autoFocus
@@ -175,7 +178,7 @@ export default function ProfileScreen({ session, onLogout }: Props) {
           )}
           <Text style={S.muted}>@{session.username}</Text>
           {session.isGuest && (
-            <Text style={{ fontSize: 11, color: C.accent, marginTop: 2 }}>👤 Invitado</Text>
+            <Text style={{ fontSize: 11, color: C.accent, marginTop: 2 }}>{t('profile.guest')}</Text>
           )}
         </View>
       </View>
@@ -184,22 +187,22 @@ export default function ProfileScreen({ session, onLogout }: Props) {
       <View style={styles.statsRow}>
         <View style={styles.statBox}>
           <Text style={styles.statValue}>{(profile?.total_score ?? 0).toLocaleString()}</Text>
-          <Text style={styles.statLabel}>Puntos</Text>
+          <Text style={styles.statLabel}>{t('profile.points')}</Text>
         </View>
         <View style={styles.statBox}>
           <Text style={styles.statValue}>🔥 {profile?.current_streak ?? 0}</Text>
-          <Text style={styles.statLabel}>Racha</Text>
+          <Text style={styles.statLabel}>{t('profile.streak')}</Text>
         </View>
         <View style={styles.statBox}>
           <Text style={styles.statValue}>⚡ {profile?.max_streak ?? 0}</Text>
-          <Text style={styles.statLabel}>Récord</Text>
+          <Text style={styles.statLabel}>{t('profile.record')}</Text>
         </View>
       </View>
 
-      {/* ── Historial reciente ──────────────────────────────────────── */}
+      {/* ── Recent history ──────────────────────────────────────────── */}
       {history.length > 0 && (
         <View style={{ marginBottom: 24 }}>
-          <Text style={[S.sectionTitle, { marginBottom: 10 }]}>Historial reciente</Text>
+          <Text style={[S.sectionTitle, { marginBottom: 10 }]}>{t('profile.recentHistory')}</Text>
           {history.map((entry: any, i: number) => (
             <View key={i} style={styles.historyRow}>
               <Text style={{ fontSize: 22 }}>{entry.object_emoji}</Text>
@@ -223,22 +226,22 @@ export default function ProfileScreen({ session, onLogout }: Props) {
       {history.length === 0 && !loading && (
         <View style={styles.emptyHistory}>
           <Text style={{ fontSize: 32, marginBottom: 8 }}>📷</Text>
-          <Text style={S.muted}>Aún no has jugado ningún reto</Text>
+          <Text style={S.muted}>{t('profile.noHistory')}</Text>
         </View>
       )}
 
-      {/* ── Cambiar contraseña ──────────────────────────────────────── */}
+      {/* ── Change password ─────────────────────────────────────────── */}
       {!session.isGuest && (
         <View style={{ marginBottom: 10 }}>
           <TouchableOpacity style={styles.sectionBtn} onPress={() => setShowPassword(v => !v)}>
-            <Text style={styles.sectionBtnText}>🔑 Cambiar contraseña</Text>
+            <Text style={styles.sectionBtnText}>{t('profile.changePassword')}</Text>
             <Text style={S.muted}>{showPassword ? '▲' : '▼'}</Text>
           </TouchableOpacity>
           {showPassword && (
             <View style={styles.expandBox}>
               <TextInput
                 style={S.input}
-                placeholder="Contraseña actual"
+                placeholder={t('profile.currentPassword')}
                 placeholderTextColor={C.muted}
                 secureTextEntry
                 value={oldPass}
@@ -246,7 +249,7 @@ export default function ProfileScreen({ session, onLogout }: Props) {
               />
               <TextInput
                 style={S.input}
-                placeholder="Nueva contraseña (mín. 6 caracteres)"
+                placeholder={t('profile.newPassword')}
                 placeholderTextColor={C.muted}
                 secureTextEntry
                 value={newPass}
@@ -257,21 +260,23 @@ export default function ProfileScreen({ session, onLogout }: Props) {
                 onPress={savePassword}
                 disabled={savingPass}
               >
-                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>{savingPass ? 'Guardando…' : 'Actualizar contraseña'}</Text>
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>
+                  {savingPass ? t('common.saving') : t('profile.updatePassword')}
+                </Text>
               </TouchableOpacity>
             </View>
           )}
         </View>
       )}
 
-      {/* ── Cerrar sesión ───────────────────────────────────────────── */}
+      {/* ── Log out ─────────────────────────────────────────────────── */}
       <TouchableOpacity style={styles.logoutBtn} onPress={confirmLogout}>
-        <Text style={styles.logoutText}>↩ Cerrar sesión</Text>
+        <Text style={styles.logoutText}>{t('profile.logout')}</Text>
       </TouchableOpacity>
 
-      {/* ── Eliminar cuenta ─────────────────────────────────────────── */}
+      {/* ── Delete account ──────────────────────────────────────────── */}
       <TouchableOpacity style={styles.deleteBtn} onPress={confirmDelete}>
-        <Text style={styles.deleteText}>🗑 Eliminar cuenta</Text>
+        <Text style={styles.deleteText}>{t('profile.deleteAccount')}</Text>
       </TouchableOpacity>
 
       <View style={{ height: 32 }} />

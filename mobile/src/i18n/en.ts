@@ -1,0 +1,157 @@
+const en = {
+  // ── Common ───────────────────────────────────────────────────────────────────
+  common: {
+    error:    'Error',
+    cancel:   'Cancel',
+    delete:   'Delete',
+    saving:   'Saving…',
+    close:    'Close',
+  },
+
+  difficulty: {
+    easy:   'Easy',
+    medium: 'Medium',
+    hard:   'Hard',
+  },
+
+  // ── Onboarding ───────────────────────────────────────────────────────────────
+  onboarding: {
+    slide1_title: 'Welcome to SnapIT',
+    slide1_body:  'The daily game where AI asks you to photograph an object. Like Wordle, but with your camera.',
+    slide2_title: 'Detect and score',
+    slide2_body:  'The more precise, fast and well-framed, the more points. You have 3 attempts to get the best score.',
+    slide3_title: 'Compete every day',
+    slide3_body:  'Compare your results with friends in the feed, climb the global ranking and keep your daily streak.',
+    next:  'Next →',
+    start: 'Start playing!',
+    skip:  'Skip',
+  },
+
+  // ── Auth ─────────────────────────────────────────────────────────────────────
+  auth: {
+    tagline:           'The daily object detection game',
+    tabLogin:          'Login',
+    tabRegister:       'Register',
+    tabGuest:          'Guest',
+    email:             'Email',
+    password:          'Password',
+    username:          'Username',
+    displayName:       'Display name (optional)',
+    passwordMin:       'Password (min. 6 characters)',
+    loginBtn:          'Sign in →',
+    registerBtn:       'Create account →',
+    guestWarning:      '⚠️ Without an account your streak won\'t persist across devices',
+    guestBtn:          'Play as guest →',
+    fillAll:           'Fill in all fields',
+    fillRequired:      'Fill in all required fields',
+    passwordTooShort:  'Password must be at least 6 characters',
+    chooseUsername:    'Choose a username',
+  },
+
+  // ── Play ─────────────────────────────────────────────────────────────────────
+  play: {
+    doneTitle:         'You completed today\'s challenge!',
+    doneSub:           'Come back tomorrow for a new object',
+    photographTarget:  '🎯 Photograph: {{emoji}} {{name}}',
+    retake:            '↩ Retake',
+    useThis:           '✓ Use this',
+    correctLabel:      'Object detected!',
+    wrongLabel:        'Wrong object',
+    confidenceLabel:   'Confidence: {{pct}}%',
+    wrongDetected:     'Detected "{{detected}}", the challenge was "{{object}}"',
+    breakdown:         'Breakdown',
+    baseScore:         'Base score',
+    speed:             'Speed',
+    framing:           'Framing',
+    clutter:           'Clutter',
+    attemptN:          'Attempt {{n}}',
+    difficulty:        'Difficulty',
+    tryAgain:          '📸 Attempt {{n}}/3',
+    share:             '📤 Share',
+    easy:              '⭐ Easy',
+    medium:            '⭐⭐ Medium',
+    hard:              '⭐⭐⭐ Hard',
+    timer:             '⏱ Time elapsed',
+    takePhoto:         '📷 Take photo',
+    basePts:           'Up to {{pts}} base pts',
+    noConnectionTitle: 'No connection',
+    noConnectionBody:  'Could not load today\'s challenge.',
+    permissionDenied:  'Permission denied',
+    cameraPermission:  'SnapIT needs camera access.',
+    photoError:        'Could not take the photo.',
+    submitError:       'Could not send the photo.',
+  },
+
+  // ── Feed ─────────────────────────────────────────────────────────────────────
+  feed: {
+    title:               'Today\'s feed',
+    friendsOnly:         'Friends only',
+    justNow:             'Just now',
+    minutesAgo:          '{{n}} min ago',
+    hoursAgo:            '{{n}}h ago',
+    detected:            '✅ Detected',
+    failed:              '❌ Failed',
+    noFriends:           '👥 No friends have played today yet',
+    nobody:              '😶 Nobody has played today yet',
+    loadError:           'Could not load the feed.',
+    registerToLike:      'Register to give likes',
+    registerToComment:   'Register to comment',
+    commentPlaceholder:  'Add a comment…',
+  },
+
+  // ── Friends ──────────────────────────────────────────────────────────────────
+  friends: {
+    title:        '👥 Friend management',
+    guestBody:    'Register to add friends and compare results every day',
+    search:       'Search user…',
+    received:     'Received requests',
+    empty:        'You don\'t have friends yet.\nSearch above 👆',
+    alreadyFriends: '✓ Friends',
+    accept:       '✓ Accept',
+    add:          '+ Add',
+    wantsFriend:  'wants to be your friend',
+    removeTitle:  'Remove friend',
+    removeBody:   'Remove @{{username}}?',
+    loadError:    'Could not load friends list.',
+    streakDays:   '🔥{{n}} streak',
+  },
+
+  // ── Leaderboard ──────────────────────────────────────────────────────────────
+  leaderboard: {
+    title:     'Global ranking',
+    streak:    '🔥 {{n}}-day streak',
+    empty:     'Nobody in the ranking yet',
+    loadError: 'Could not load the ranking.',
+    you:       '(you)',
+  },
+
+  // ── Profile ──────────────────────────────────────────────────────────────────
+  profile: {
+    guest:              '👤 Guest',
+    points:             'Points',
+    streak:             'Streak',
+    record:             'Record',
+    recentHistory:      'Recent history',
+    noHistory:          'You haven\'t played any challenge yet',
+    changePassword:     '🔑 Change password',
+    currentPassword:    'Current password',
+    newPassword:        'New password (min. 6 characters)',
+    updatePassword:     'Update password',
+    passwordTooShort:   'New password must be at least 6 characters',
+    passwordUpdated:    '✅ Password changed',
+    passwordUpdatedBody:'Your password has been updated successfully.',
+    logout:             '↩ Log out',
+    deleteAccount:      '🗑 Delete account',
+    logoutTitle:        'Log out',
+    logoutBody:         'Are you sure you want to log out?',
+    deleteTitle:        '⚠️ Delete account',
+    deleteBody:         'This action is permanent. All your data, scores and history will be deleted.',
+    confirmPassword:    'Confirm password',
+    confirmPasswordBody:'Enter your password to confirm deletion',
+    newName:            'New name',
+    loadError:          'Could not load profile.',
+  },
+} as const;
+
+export default en;
+export type TranslationKeys = typeof en;

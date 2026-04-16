@@ -4,6 +4,7 @@ import {
   Image, ActivityIndicator, Alert, Share, Platform,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import { useTranslation } from 'react-i18next';
 import { C, S } from '../theme';
 import { apiToday, apiWeek, apiSubmit } from '../api';
 import { saveScoreToday, getNotifEpoch } from '../auth';
@@ -14,6 +15,8 @@ interface Props { session: AuthSession }
 type Screen = 'challenge' | 'camera' | 'preview' | 'score' | 'done';
 
 export default function PlayScreen({ session }: Props) {
+  const { t, i18n: i18nInstance } = useTranslation();
+
   const [permission, requestPermission] = useCameraPermissions();
   const [screen,       setScreen]       = useState<Screen>('challenge');
   const [challenge,    setChallenge]    = useState<Challenge | null>(null);
@@ -52,19 +55,19 @@ export default function PlayScreen({ session }: Props) {
       if (ch.already_done) {
         setScreen('done');
       } else {
-        const t = epoch || Date.now();
-        setNotifTime(t);
-        startTimer(t);
+        const ts = epoch || Date.now();
+        setNotifTime(ts);
+        startTimer(ts);
       }
     } catch (e) {
-      Alert.alert('Sin conexión', 'No se pudo cargar el reto del día.');
+      Alert.alert(t('play.noConnectionTitle'), t('play.noConnectionBody'));
     }
   }
 
   async function openCamera() {
     if (!permission?.granted) {
       const { granted } = await requestPermission();
-      if (!granted) { Alert.alert('Permiso denegado', 'SnapIT necesita acceder a la cámara.'); return; }
+      if (!granted) { Alert.alert(t('play.permissionDenied'), t('play.cameraPermission')); return; }
     }
     setScreen('camera');
   }
@@ -75,7 +78,7 @@ export default function PlayScreen({ session }: Props) {
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.85 });
       if (photo) { setPhotoUri(photo.uri); setScreen('preview'); }
     } catch {
-      Alert.alert('Error', 'No se pudo tomar la foto.');
+      Alert.alert(t('common.error'), t('play.photoError'));
     }
   }
 
@@ -97,7 +100,7 @@ export default function PlayScreen({ session }: Props) {
       setScore(result);
       setScreen('score');
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo enviar la foto.');
+      Alert.alert(t('common.error'), e.message || t('play.submitError'));
     } finally {
       setLoading(false);
     }
@@ -123,7 +126,7 @@ export default function PlayScreen({ session }: Props) {
   }
 
   const diffColor = (d: string) => d === 'easy' ? C.green : d === 'medium' ? C.yellow : C.red;
-  const diffLabel = (d: string) => d === 'easy' ? '⭐ Fácil' : d === 'medium' ? '⭐⭐ Medio' : '⭐⭐⭐ Difícil';
+  const diffLabel = (d: string) => d === 'easy' ? t('play.easy') : d === 'medium' ? t('play.medium') : t('play.hard');
   const fmtTime   = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
   // ── Done ────────────────────────────────────────────────────────────────────
@@ -132,8 +135,8 @@ export default function PlayScreen({ session }: Props) {
       <WeekCalendar week={week} />
       <View style={styles.doneCard}>
         <Text style={styles.doneIcon}>🎯</Text>
-        <Text style={styles.doneTitle}>¡Ya completaste el reto de hoy!</Text>
-        <Text style={styles.doneSub}>Vuelve mañana para un nuevo objeto</Text>
+        <Text style={styles.doneTitle}>{t('play.doneTitle')}</Text>
+        <Text style={styles.doneSub}>{t('play.doneSub')}</Text>
       </View>
     </ScrollView>
   );
@@ -146,7 +149,7 @@ export default function PlayScreen({ session }: Props) {
           {challenge && (
             <View style={styles.cameraTarget}>
               <Text style={styles.cameraTargetText}>
-                🎯 Fotografía: {challenge.object_emoji} {challenge.object_name}
+                {t('play.photographTarget', { emoji: challenge.object_emoji, name: challenge.object_name })}
               </Text>
             </View>
           )}
@@ -167,13 +170,13 @@ export default function PlayScreen({ session }: Props) {
       <View style={styles.previewActions}>
         <TouchableOpacity style={[S.btnSecondary, { flex: 1, marginBottom: 0, marginRight: 8 }]}
           onPress={() => setScreen('camera')}>
-          <Text style={S.btnText}>↩ Repetir</Text>
+          <Text style={S.btnText}>{t('play.retake')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[S.btnPrimary, { flex: 1, marginBottom: 0 }]}
           onPress={submitPhoto} disabled={loading}>
           {loading
             ? <ActivityIndicator color="#fff" />
-            : <Text style={S.btnText}>✓ Usar esta</Text>}
+            : <Text style={S.btnText}>{t('play.useThis')}</Text>}
         </TouchableOpacity>
       </View>
     </View>
@@ -188,15 +191,15 @@ export default function PlayScreen({ session }: Props) {
         <Text style={[styles.scoreTotal, { color: score.correct ? C.green : C.red }]}>
           {score.total_score.toLocaleString()}
         </Text>
-        <Text style={styles.scoreLabel}>{score.correct ? '¡Objeto detectado!' : 'Objeto incorrecto'}</Text>
+        <Text style={styles.scoreLabel}>{score.correct ? t('play.correctLabel') : t('play.wrongLabel')}</Text>
         <Text style={styles.scoreConf}>
           {score.correct
-            ? `Confianza: ${score.confidence_pct}%`
-            : `Se detectó "${score.detected_class}", el reto era "${challenge.object_name}"`}
+            ? t('play.confidenceLabel', { pct: score.confidence_pct })
+            : t('play.wrongDetected', { detected: score.detected_class, object: challenge.object_name })}
         </Text>
       </View>
 
-      {/* Imagen anotada */}
+      {/* Annotated image */}
       {score.annotated_image_b64 && (
         <Image
           source={{ uri: `data:image/jpeg;base64,${score.annotated_image_b64}` }}
@@ -205,28 +208,28 @@ export default function PlayScreen({ session }: Props) {
         />
       )}
 
-      {/* Desglose */}
-      <Text style={[S.sectionTitle, { marginTop: 8 }]}>Desglose</Text>
+      {/* Breakdown */}
+      <Text style={[S.sectionTitle, { marginTop: 8 }]}>{t('play.breakdown')}</Text>
       <View style={styles.breakdownGrid}>
-        <BreakdownItem label="Score base"    value={score.base_score.toLocaleString()} color={C.text} />
-        <BreakdownItem label="Velocidad"     value={`+${score.speed_bonus}`}   color={C.green}  sub={score.speed_label} />
-        <BreakdownItem label="Encuadre"      value={`+${score.framing_bonus}`} color={C.green}  sub={score.framing_label} />
-        <BreakdownItem label="Clutter"       value={`-${score.clutter_penalty}`} color={C.red} />
+        <BreakdownItem label={t('play.baseScore')}  value={score.base_score.toLocaleString()} color={C.text} />
+        <BreakdownItem label={t('play.speed')}      value={`+${score.speed_bonus}`}   color={C.green}  sub={score.speed_label} />
+        <BreakdownItem label={t('play.framing')}    value={`+${score.framing_bonus}`} color={C.green}  sub={score.framing_label} />
+        <BreakdownItem label={t('play.clutter')}    value={`-${score.clutter_penalty}`} color={C.red} />
         {score.attempt_penalty > 0 &&
-          <BreakdownItem label={`Intento ${score.attempt_number}`} value={`-${score.attempt_penalty}`} color={C.red} />}
-        <BreakdownItem label="Dificultad"    value={`×${score.difficulty_mult}`} color={C.accent} />
+          <BreakdownItem label={t('play.attemptN', { n: score.attempt_number })} value={`-${score.attempt_penalty}`} color={C.red} />}
+        <BreakdownItem label={t('play.difficulty')} value={`×${score.difficulty_mult}`} color={C.accent} />
       </View>
 
-      {/* Botones */}
+      {/* Buttons */}
       <AttemptsRow attempt={attempt} score={score} />
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
         {!score.correct && attempt < 3 && (
           <TouchableOpacity style={[S.btnPrimary, { flex: 1, marginBottom: 0 }]} onPress={tryAgain}>
-            <Text style={S.btnText}>📸 Intento {attempt + 1}/3</Text>
+            <Text style={S.btnText}>{t('play.tryAgain', { n: attempt + 1 })}</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity style={[S.btnSecondary, { flex: 1, marginBottom: 0 }]} onPress={shareScore}>
-          <Text style={S.btnText}>📤 Compartir</Text>
+          <Text style={S.btnText}>{t('play.share')}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -244,7 +247,7 @@ export default function PlayScreen({ session }: Props) {
           {/* Challenge card */}
           <View style={styles.challengeCard}>
             <Text style={styles.challengeDate}>
-              {new Date(challenge.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })} · {challenge.weekday}
+              {new Date(challenge.date).toLocaleDateString(i18nInstance.language, { day: 'numeric', month: 'long' })} · {challenge.weekday}
             </Text>
             <Text style={styles.challengeEmoji}>{challenge.object_emoji}</Text>
             <Text style={styles.challengeName}>{challenge.object_name}</Text>
@@ -252,17 +255,17 @@ export default function PlayScreen({ session }: Props) {
               <Text style={[styles.diffText, { color: diffColor(challenge.difficulty) }]}>{diffLabel(challenge.difficulty)}</Text>
             </View>
             {challenge.hint && <Text style={styles.challengeHint}>💡 {challenge.hint}</Text>}
-            <Text style={styles.challengePts}>Hasta {challenge.base_points.toLocaleString()} pts base</Text>
+            <Text style={styles.challengePts}>{t('play.basePts', { pts: challenge.base_points.toLocaleString() })}</Text>
           </View>
 
           {/* Timer */}
           <View style={styles.timerCard}>
-            <Text style={S.muted}>⏱ Tiempo transcurrido</Text>
+            <Text style={S.muted}>{t('play.timer')}</Text>
             <Text style={styles.timerValue}>{fmtTime(elapsed)}</Text>
           </View>
 
           <TouchableOpacity style={S.btnPrimary} onPress={openCamera}>
-            <Text style={S.btnText}>📷 Hacer foto</Text>
+            <Text style={S.btnText}>{t('play.takePhoto')}</Text>
           </TouchableOpacity>
         </>
       )}
@@ -270,18 +273,20 @@ export default function PlayScreen({ session }: Props) {
   );
 }
 
-// ── Sub-componentes ───────────────────────────────────────────────────────────
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 function WeekCalendar({ week }: { week: WeekDay[] }) {
+  const { t } = useTranslation();
   if (!week.length) return null;
   const diffColor = (d: string) => d === 'easy' ? C.green : d === 'medium' ? C.yellow : C.red;
+  const diffShort = (d: string) => d === 'easy' ? t('difficulty.easy') : d === 'medium' ? t('difficulty.medium') : t('difficulty.hard');
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
       {week.map(d => (
         <View key={d.date} style={[styles.weekDay, d.is_today && styles.weekDayToday]}>
           <Text style={styles.weekDayName}>{d.weekday.slice(0, 3).toUpperCase()}</Text>
           <Text style={styles.weekDayEmoji}>{d.object_emoji}</Text>
-          <Text style={[styles.weekDayDiff, { color: diffColor(d.difficulty) }]}>{d.difficulty}</Text>
+          <Text style={[styles.weekDayDiff, { color: diffColor(d.difficulty) }]}>{diffShort(d.difficulty)}</Text>
         </View>
       ))}
     </ScrollView>
