@@ -30,6 +30,10 @@
         "android.permission.CAMERA",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.SCHEDULE_EXACT_ALARM",
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -53,6 +57,12 @@
       "eas": {
         "projectId": "270fef92-cc98-488b-a74b-9bef165acaa1"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/270fef92-cc98-488b-a74b-9bef165acaa1"
     }
   }
 }
