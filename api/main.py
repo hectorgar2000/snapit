@@ -251,7 +251,7 @@ def delete_account_page():
     <h2>¿No puedes acceder a la app?</h2>
     <p class="contact">
       Si no puedes iniciar sesión o tienes algún problema, escríbenos a<br />
-      <a href="mailto:soporte@snapit.app">soporte@snapit.app</a><br />
+      <a href="mailto:hectorgar2000@gmail.com">hectorgar2000@gmail.com</a><br />
       indicando tu nombre de usuario y te eliminaremos la cuenta manualmente en un plazo máximo de <strong>30 días</strong>.
     </p>
   </div>
