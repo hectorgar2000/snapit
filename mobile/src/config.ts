@@ -8,4 +8,4 @@
 // Producción:
 //   - URL de Railway   → 'https://snapit.up.railway.app'
 
-export const API_URL = 'https://snapit.up.railway.app';
+export const API_URL = 'https://snapit-production.up.railway.app';
