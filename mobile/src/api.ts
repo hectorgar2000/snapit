@@ -17,7 +17,11 @@ async function request<T>(
     ...options,
     headers: { ...authHeaders(token), ...options.headers },
   });
-  const data = await res.json();
+  const text = await res.text();
+  let data: any;
+  try { data = JSON.parse(text); } catch {
+    throw new Error(`Server error (${res.status}): ${text.substring(0, 120)}`);
+  }
   if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
   return data as T;
 }
@@ -82,7 +86,11 @@ export async function apiSubmit(params: {
     headers: params.token ? { Authorization: `Bearer ${params.token}` } : {},
     body: formData,
   });
-  const data = await res.json();
+  const text = await res.text();
+  let data: any;
+  try { data = JSON.parse(text); } catch {
+    throw new Error(`Server error (${res.status}): ${text.substring(0, 120)}`);
+  }
   if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
   return data as ScoreResult;
 }
