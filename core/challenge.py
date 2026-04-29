@@ -9,7 +9,7 @@ Gestiona el reto diario:
 import hashlib
 from datetime import date, timedelta
 from typing import Optional
-from core.catalog import CATALOG, SnapObject, get_by_difficulty
+from core.catalog import SnapObject, get_by_difficulty_active
 
 
 # ─── Configuración ────────────────────────────────────────────────────────────
@@ -40,7 +40,7 @@ def get_daily_challenge(target_date: Optional[date] = None) -> SnapObject:
         target_date = date.today()
 
     difficulty = WEEKDAY_DIFFICULTY[target_date.weekday()]
-    pool = get_by_difficulty(difficulty)
+    pool = get_by_difficulty_active(difficulty)
 
     # Hash de la fecha → índice reproducible
     date_str = f"{SALT}:{target_date.isoformat()}"

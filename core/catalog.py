@@ -7,8 +7,21 @@ Gracias a CLIP, acepta tanto nombres de clases exactos como descripciones
 en lenguaje natural (ej. "wooden chair", "coffee mug").
 """
 
+import os
 from dataclasses import dataclass
 from typing import Optional
+
+# Clases detectables por YOLOv8 estándar (COCO-80)
+COCO_CLASSES: set[str] = {
+    "chair", "couch", "laptop", "cell phone", "book", "bottle", "cup",
+    "keyboard", "mouse", "tv", "clock", "vase", "backpack", "umbrella",
+    "bicycle", "car", "potted plant", "bed", "dining table", "refrigerator",
+    "microwave", "oven", "sink", "toilet", "suitcase", "handbag", "knife",
+    "toaster", "scissors", "toothbrush", "hair drier", "remote", "wine glass",
+    "motorcycle", "bird", "cat", "dog", "sports ball", "tennis racket",
+    "kite", "fire hydrant", "stop sign", "parking meter", "bench",
+    "skateboard", "tie", "spoon", "fork", "bowl",
+}
 
 
 @dataclass
@@ -132,6 +145,22 @@ CATALOG: list[SnapObject] = [
 # Índice rápido por coco_name (texto para YOLO-World)
 CATALOG_INDEX: dict[str, SnapObject] = {obj.coco_name: obj for obj in CATALOG}
 
+_USE_YOLO_WORLD = os.getenv("YOLO_MODE", "coco").lower() == "world"
+
+
+def get_active_catalog() -> list[SnapObject]:
+    """Devuelve el catálogo filtrado según el modo de detección activo."""
+    if _USE_YOLO_WORLD:
+        return CATALOG
+    # Modo COCO: solo objetos detectables por YOLOv8 estándar
+    seen: set[str] = set()
+    result = []
+    for obj in CATALOG:
+        if obj.coco_name in COCO_CLASSES and obj.coco_name not in seen:
+            seen.add(obj.coco_name)
+            result.append(obj)
+    return result
+
 
 def get_by_coco_name(name: str) -> Optional[SnapObject]:
     """Busca un objeto por su clase/texto YOLO-World."""
@@ -139,13 +168,18 @@ def get_by_coco_name(name: str) -> Optional[SnapObject]:
 
 
 def get_by_difficulty(difficulty: str) -> list[SnapObject]:
-    """Filtra objetos por dificultad."""
+    """Filtra objetos por dificultad (catálogo completo)."""
     return [obj for obj in CATALOG if obj.difficulty == difficulty]
 
 
+def get_by_difficulty_active(difficulty: str) -> list[SnapObject]:
+    """Filtra objetos por dificultad del catálogo activo según YOLO_MODE."""
+    return [obj for obj in get_active_catalog() if obj.difficulty == difficulty]
+
+
 def all_coco_names() -> list[str]:
-    """Devuelve todos los textos YOLO-World del catálogo."""
-    return list(CATALOG_INDEX.keys())
+    """Devuelve todos los textos YOLO-World del catálogo activo."""
+    return [obj.coco_name for obj in get_active_catalog()]
 
 
 if __name__ == "__main__":
