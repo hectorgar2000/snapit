@@ -13,10 +13,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-descargar el modelo YOLO-World para que el primer request no tarde
-# El modelo (~50 MB) queda dentro de la imagen, en /app/
-RUN python -c "from ultralytics import YOLOWorld; YOLOWorld('yolov8s-worldv2.pt')"
-
 # Copiar el código
 COPY . .
 

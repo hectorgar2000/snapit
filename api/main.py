@@ -100,12 +100,6 @@ def on_startup():
     frontend_dir = Path(__file__).parent.parent / "frontend"
     if frontend_dir.exists():
         app.mount("/static", StaticFiles(directory=str(frontend_dir)), name="static")
-    # Pre-cargar YOLO para que el primer submit no tarde ni falle por timeout
-    try:
-        get_detector()._load_model()
-        print("✅ YOLO-World pre-cargado correctamente")
-    except Exception as e:
-        print(f"⚠️ YOLO pre-load falló: {type(e).__name__}: {e}")
     print("✅ SnapIT API arrancada — base de datos lista")
 
 
